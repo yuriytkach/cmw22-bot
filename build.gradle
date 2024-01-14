@@ -1,0 +1,51 @@
+allprojects {
+    apply plugin: 'java'
+
+    group = 'com.yuriytkach'
+    version = '1.0.0'
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    compileJava {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-parameters'
+    }
+
+    compileTestJava {
+        options.encoding = 'UTF-8'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}
+
+subprojects {
+    if (name != 'cdk') {
+        dependencies {
+            implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+            implementation enforcedPlatform("${quarkusPlatformGroupId}:quarkus-amazon-services-bom:${quarkusPlatformVersion}")
+
+            testImplementation 'io.quarkus:quarkus-junit5'
+            testImplementation 'io.quarkus:quarkus-junit5-mockito'
+            testImplementation 'io.rest-assured:rest-assured'
+            testImplementation 'org.assertj:assertj-core:3.24.2'
+            testImplementation 'io.quarkus:quarkus-jacoco'
+        }
+    }
+
+    if (name != 'common' && name != 'cdk') {
+        dependencies {
+            implementation project(':common')
+        }
+    }
+
+}

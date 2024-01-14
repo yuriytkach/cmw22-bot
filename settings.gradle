@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+        mavenLocal()
+    }
+    plugins {
+        id "${quarkusPluginId}" version "${quarkusPluginVersion}"
+    }
+}
+
+rootProject.name = 'bank-accounts-track-bot'
+include 'common'
+include 'lambda-bank-status-updater'
+include 'lambda-telegram-bot'
+include 'cdk'
+
