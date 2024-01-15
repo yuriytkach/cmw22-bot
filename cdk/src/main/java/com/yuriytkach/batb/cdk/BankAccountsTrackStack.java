@@ -50,41 +50,53 @@ public class BankAccountsTrackStack extends Stack {
     PolicyStatement readPolicy = PolicyStatement.Builder.create()
       .actions(List.of("ssm:GetParametersByPath"))
       .resources(
-        Stream.of(tokens, accounts)
+        Stream.of(tokens)
           .flatMap(suffix ->
-              Stream.of(
-                "arn:aws:ssm:%s:%s:parameter/%s/*/%s",
-                "arn:aws:ssm:%s:%s:parameter/%s/*/%s/",
-                "arn:aws:ssm:%s:%s:parameter/%s/*/%s/*"
-              ).map(pattern -> pattern.formatted(
-                Stack.of(this).getRegion(),
-                Stack.of(this).getAccount(),
-                prefix,
-                suffix
-              ))
+            Stream.of(
+              "arn:aws:ssm:%s:%s:parameter/%s/*/%s",
+              "arn:aws:ssm:%s:%s:parameter/%s/*/%s/",
+              "arn:aws:ssm:%s:%s:parameter/%s/*/%s/*"
+            ).map(pattern -> pattern.formatted(
+              Stack.of(this).getRegion(),
+              Stack.of(this).getAccount(),
+              prefix,
+              suffix
+            ))
           )
-            .toList())
+          .toList())
+      .build();
+
+    PolicyStatement readPolicy2 = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParameter"))
+      .resources(List.of(
+        "arn:aws:ssm:%s:%s:parameter/%s/*/%s".formatted(
+          Stack.of(this).getRegion(),
+          Stack.of(this).getAccount(),
+          prefix,
+          accounts
+        ))
+      )
       .build();
 
     PolicyStatement writePolicy = PolicyStatement.Builder.create()
       .actions(List.of("ssm:PutParameter"))
       .resources(
         Stream.of(
-          "arn:aws:ssm:%s:%s:parameter/%s/*/%s",
-          "arn:aws:ssm:%s:%s:parameter/%s/*/%s/",
-          "arn:aws:ssm:%s:%s:parameter/%s/*/%s/*"
-        ).map(pattern -> pattern.formatted(
-          Stack.of(this).getRegion(),
-          Stack.of(this).getAccount(),
-          prefix,
-          statuses
-        ))
+            "arn:aws:ssm:%s:%s:parameter/%s/*/%s",
+            "arn:aws:ssm:%s:%s:parameter/%s/*/%s/",
+            "arn:aws:ssm:%s:%s:parameter/%s/*/%s/*"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount(),
+            prefix,
+            statuses
+          ))
           .toList())
       .build();
 
     lambdaBankStatusUpdater.getRole().attachInlinePolicy(
       new Policy(this, "ParameterStorePolicy", PolicyProps.builder()
-        .statements(Arrays.asList(readPolicy, writePolicy))
+        .statements(Arrays.asList(readPolicy, readPolicy2, writePolicy))
         .build())
     );
   }
