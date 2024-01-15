@@ -10,8 +10,9 @@ import lombok.Builder;
 public record BankAccountStatus (
   BankType bankType,
   String accountId,
+  String accountName,
   long amount,
-  String currency,
+  Currency currency,
   Instant updatedAt
 ) {
 

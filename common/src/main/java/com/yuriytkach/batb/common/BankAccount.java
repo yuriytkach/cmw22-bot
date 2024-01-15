@@ -1,5 +1,8 @@
 package com.yuriytkach.batb.common;
 
-public record BankAccount() {
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import lombok.Builder;
 
-}
+@Builder
+@RegisterForReflection
+public record BankAccount(String id, String name) { }

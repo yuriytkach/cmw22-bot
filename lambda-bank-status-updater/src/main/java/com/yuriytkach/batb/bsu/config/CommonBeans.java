@@ -24,8 +24,12 @@ public class CommonBeans {
 
   @Produces
   @ApplicationScoped
-  BankAccessStorage bankAccessStorage(final SsmClient ssmClient, final SsmProperties ssmProperties) {
-    return new SsmBankAccessStorage(ssmClient, ssmProperties);
+  BankAccessStorage bankAccessStorage(
+    final SsmClient ssmClient,
+    final SsmProperties ssmProperties,
+    final ObjectMapper objectMapper
+  ) {
+    return new SsmBankAccessStorage(ssmClient, ssmProperties, objectMapper);
   }
 
   @Produces
