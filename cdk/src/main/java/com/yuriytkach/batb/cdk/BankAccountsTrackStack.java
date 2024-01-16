@@ -190,6 +190,13 @@ public class BankAccountsTrackStack extends Stack {
       .timeout(Duration.minutes(10))
       .build();
 
+    final String secretParamKey = "/bot/telegram/chat";
+
+    lambda.addToRolePolicy(new PolicyStatement(PolicyStatementProps.builder()
+      .actions(List.of("ssm:GetParameter"))
+      .resources(List.of("arn:aws:ssm:" + this.getRegion() + ":" + this.getAccount() + ":parameter" + secretParamKey))
+      .build()));
+
     return createVersionAndUpdateAlias(lambda, "BankTelegramBot");
   }
 

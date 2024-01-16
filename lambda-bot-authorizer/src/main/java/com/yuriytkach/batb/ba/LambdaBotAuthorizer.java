@@ -5,6 +5,7 @@ import org.slf4j.MDC;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.IamPolicyResponse;
+import com.yuriytkach.batb.common.secret.SecretsReader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,3 +1,17 @@
+app:
+  chat-id-secret-key: /bot/telegram/chat
+  bot-name: "@cmw22_finance_bot"
+
+commands:
+  status: "/status"
+
+quarkus:
+  rest-client:
+    telegram:
+      url: https://api.telegram.org
+      connect-timeout: 2000
+      read-timeout: 10000
+
 quarkus:
   log:
     level: INFO

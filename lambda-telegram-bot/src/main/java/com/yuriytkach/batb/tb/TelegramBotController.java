@@ -1,6 +1,11 @@
 package com.yuriytkach.batb.tb;
 
 import org.slf4j.MDC;
+import org.telegram.telegrambots.meta.api.objects.Chat;
+import org.telegram.telegrambots.meta.api.objects.Update;
+
+import com.yuriytkach.batb.common.secret.SecretsReader;
+import com.yuriytkach.batb.tb.config.AppProperties;
 
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -16,19 +21,40 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TelegramBotController {
 
+  private final SecretsReader secretsReader;
+  private final AppProperties appProperties;
+  private final TelegramBotService telegramBotService;
+
   @POST
   @Produces(MediaType.APPLICATION_JSON)
   @Path("/event")
   public Response hook(
     @Context com.amazonaws.services.lambda.runtime.Context context,
-    final String body
+    final Update body
   ) {
     MDC.put("awsRequestId", context.getAwsRequestId());
     log.info("Telegram Book Hook. AWS Request ID: {}", context.getAwsRequestId());
-    log.info("Body: {}", body);
-    return Response.ok(new Resp("world", "yes")).build();
+
+    try {
+      if (isValidChatId(body.getMessage().getChat())) {
+        log.info("Chat ID is valid");
+        final var response = telegramBotService.processUpdate(body.getMessage());
+        return response.map(Response::ok).orElseGet(Response::ok).build();
+      } else {
+        log.info("Chat ID is invalid: {}", body.getMessage().getChat().getId());
+      }
+    } catch (final Exception ex) {
+      log.error("Error while processing update: {}", ex.getMessage());
+      log.warn("Received body: {}", body);
+    }
+
+    return Response.ok().build();
   }
 
-  public record Resp(String hello, String world) { }
+  private boolean isValidChatId(final Chat chat) {
+    return secretsReader.readSecret(appProperties.chatIdSecretKey())
+      .filter(chatId -> chatId.equals(chat.getId().toString()))
+      .isPresent();
+  }
 
 }

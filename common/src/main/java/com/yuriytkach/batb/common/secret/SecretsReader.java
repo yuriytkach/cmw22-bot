@@ -1,4 +1,4 @@
-package com.yuriytkach.batb.ba;
+package com.yuriytkach.batb.common.secret;
 
 import java.util.Optional;
 
