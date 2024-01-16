@@ -1,5 +1,7 @@
 package com.yuriytkach.batb.tb;
 
+import java.util.Arrays;
+
 import org.slf4j.MDC;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -53,8 +55,9 @@ public class TelegramBotController {
 
   private boolean isValidChatId(final Chat chat) {
     return secretsReader.readSecret(appProperties.chatIdSecretKey())
-      .filter(chatId -> chatId.equals(chat.getId().toString()))
-      .isPresent();
+      .stream()
+      .flatMap(chatIds -> Arrays.stream(chatIds.split(",")))
+      .anyMatch(chatId -> chatId.equals(chat.getId().toString()));
   }
 
 }

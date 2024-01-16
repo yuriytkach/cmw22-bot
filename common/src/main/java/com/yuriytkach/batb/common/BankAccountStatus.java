@@ -12,6 +12,9 @@ public record BankAccountStatus (
   String accountId,
   String accountName,
   long amount,
+
+  long amountUah,
+
   Currency currency,
   Instant updatedAt
 ) {

@@ -15,7 +15,7 @@ public interface SsmProperties {
   @WithDefault("/accounts")
   String accounts();
 
-  @WithDefault("/statuses")
+  @WithDefault("statuses")
   String statuses();
 
 }

@@ -83,7 +83,7 @@ public class BankAccountsTrackStack extends Stack {
       .build());
   }
 
-  private void addSsmReadPermissions(final Function lambdaBankStatusUpdater) {
+  private void addSsmReadPermissions(final Function lambda, final String id) {
     // Retrieve properties
     String prefix = "batb";
     String tokens = "tokens";
@@ -121,13 +121,13 @@ public class BankAccountsTrackStack extends Stack {
       )
       .build();
 
-    PolicyStatement writePolicy = PolicyStatement.Builder.create()
+    PolicyStatement writeAndReadStatusesPolicy = PolicyStatement.Builder.create()
       .actions(List.of("ssm:PutParameter"))
       .resources(
         Stream.of(
-            "arn:aws:ssm:%s:%s:parameter/%s/*/%s",
-            "arn:aws:ssm:%s:%s:parameter/%s/*/%s/",
-            "arn:aws:ssm:%s:%s:parameter/%s/*/%s/*"
+            "arn:aws:ssm:%s:%s:parameter/%s/%s",
+            "arn:aws:ssm:%s:%s:parameter/%s/%s/",
+            "arn:aws:ssm:%s:%s:parameter/%s/%s/*"
           ).map(pattern -> pattern.formatted(
             Stack.of(this).getRegion(),
             Stack.of(this).getAccount(),
@@ -137,9 +137,9 @@ public class BankAccountsTrackStack extends Stack {
           .toList())
       .build();
 
-    lambdaBankStatusUpdater.getRole().attachInlinePolicy(
-      new Policy(this, "ParameterStorePolicy", PolicyProps.builder()
-        .statements(Arrays.asList(readPolicy, readPolicy2, writePolicy))
+    lambda.getRole().attachInlinePolicy(
+      new Policy(this, id + "ParameterStorePolicy", PolicyProps.builder()
+        .statements(Arrays.asList(readPolicy, readPolicy2, writeAndReadStatusesPolicy))
         .build())
     );
   }
@@ -175,7 +175,7 @@ public class BankAccountsTrackStack extends Stack {
       .timeout(Duration.minutes(10))
       .build();
 
-    addSsmReadPermissions(lambda);
+    addSsmReadPermissions(lambda, "BankStatusUpdater");
 
     return createVersionAndUpdateAlias(lambda, "BankStatusUpdater");
   }
@@ -187,15 +187,44 @@ public class BankAccountsTrackStack extends Stack {
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
       .logRetention(RetentionDays.ONE_DAY)
       .memorySize(256)
-      .timeout(Duration.minutes(10))
+      .timeout(Duration.minutes(1))
       .build();
 
     final String secretParamKey = "/bot/telegram/chat";
+    final String tokenParamKey = "/bot/telegram/token";
 
-    lambda.addToRolePolicy(new PolicyStatement(PolicyStatementProps.builder()
+    String prefix = "batb";
+    String statuses = "statuses";
+
+    PolicyStatement writeAndReadStatusesPolicy = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParametersByPath"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/%s/%s",
+            "arn:aws:ssm:%s:%s:parameter/%s/%s/",
+            "arn:aws:ssm:%s:%s:parameter/%s/%s/*"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount(),
+            prefix,
+            statuses
+          ))
+          .toList())
+      .build();
+
+    final PolicyStatement readSecretPolicy = new PolicyStatement(PolicyStatementProps.builder()
       .actions(List.of("ssm:GetParameter"))
-      .resources(List.of("arn:aws:ssm:" + this.getRegion() + ":" + this.getAccount() + ":parameter" + secretParamKey))
-      .build()));
+      .resources(List.of(
+        "arn:aws:ssm:" + this.getRegion() + ":" + this.getAccount() + ":parameter" + secretParamKey,
+        "arn:aws:ssm:" + this.getRegion() + ":" + this.getAccount() + ":parameter" + tokenParamKey
+      ))
+      .build());
+
+    lambda.getRole().attachInlinePolicy(
+      new Policy(this, "BankTelegramBot" + "ParameterStorePolicy", PolicyProps.builder()
+        .statements(Arrays.asList(readSecretPolicy, writeAndReadStatusesPolicy))
+        .build())
+    );
 
     return createVersionAndUpdateAlias(lambda, "BankTelegramBot");
   }

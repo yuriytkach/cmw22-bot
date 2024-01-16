@@ -8,4 +8,6 @@ public interface AccountBalanceStorage {
 
   void saveAll(Set<BankAccountStatus> bankAccountStatuses);
 
+  Set<BankAccountStatus> getAll();
+
 }

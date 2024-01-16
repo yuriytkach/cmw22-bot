@@ -69,15 +69,20 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
     if (curr.isEmpty()) {
       log.warn("Unknown currency: {}", balance.currency());
     }
-    return curr.map(currency -> BankAccountStatus.builder()
+
+    final var result = curr.map(currency -> BankAccountStatus.builder()
       .accountId(balance.acc())
       .accountName(bankAccount.name())
       .bankType(BANK_TYPE)
       .amount(privatBalanceAmountParser.parseAmount(balance.balanceOut()))
+      .amountUah(privatBalanceAmountParser.parseAmount(balance.balanceOutEq()))
       .currency(currency)
       .updatedAt(clock.instant())
       .build()
     );
+
+    log.info("Converting: {} to {}", balance, result);
+    return result;
   }
 
   private boolean shouldProcessAccount(final Balance balance, final Collection<String> accounts) {

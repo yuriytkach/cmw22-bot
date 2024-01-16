@@ -66,6 +66,7 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
       .accountName("%s (%s)".formatted(bankAccount.name(), monoJar.ownerName()))
       .bankType(BANK_TYPE)
       .amount(monoJar.amount())
+      .amountUah(monoJar.amount())
       .currency(currency)
       .updatedAt(clock.instant())
       .build()

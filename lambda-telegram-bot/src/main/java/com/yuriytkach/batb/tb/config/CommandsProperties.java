@@ -6,4 +6,6 @@ import io.smallrye.config.ConfigMapping;
 public interface CommandsProperties {
 
   String status();
+
+  String help();
 }

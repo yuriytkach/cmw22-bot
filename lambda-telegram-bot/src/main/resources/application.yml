@@ -4,6 +4,7 @@ app:
 
 commands:
   status: "/status"
+  help: "/help"
 
 quarkus:
   rest-client:

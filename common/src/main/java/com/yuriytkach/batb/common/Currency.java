@@ -11,14 +11,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RegisterForReflection
 public enum Currency {
-  UAH(980),
-  USD(840),
-  EUR(978),
-  PLN(985),
-  GBP(826),
-  CHF(756);
+  UAH(980, "₴"),
+  USD(840, "$"),
+  EUR(978, "€"),
+  PLN(985, "zł"),
+  GBP(826, "£"),
+  CHF(756, "₣");
 
   private final int isoCode;
+  private final String symbol;
 
   public static Optional<Currency> fromString(final String text) {
     return Stream.of(Currency.values())
