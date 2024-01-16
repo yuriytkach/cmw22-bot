@@ -8,17 +8,30 @@ import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.apigateway.AccessLogFormat;
+import software.amazon.awscdk.services.apigateway.AuthorizationType;
+import software.amazon.awscdk.services.apigateway.IResource;
+import software.amazon.awscdk.services.apigateway.LambdaIntegration;
+import software.amazon.awscdk.services.apigateway.LogGroupLogDestination;
+import software.amazon.awscdk.services.apigateway.MethodLoggingLevel;
+import software.amazon.awscdk.services.apigateway.MethodOptions;
+import software.amazon.awscdk.services.apigateway.RequestAuthorizer;
+import software.amazon.awscdk.services.apigateway.Resource;
+import software.amazon.awscdk.services.apigateway.RestApi;
+import software.amazon.awscdk.services.apigateway.StageOptions;
 import software.amazon.awscdk.services.events.Rule;
 import software.amazon.awscdk.services.events.Schedule;
 import software.amazon.awscdk.services.events.targets.LambdaFunction;
 import software.amazon.awscdk.services.iam.Policy;
 import software.amazon.awscdk.services.iam.PolicyProps;
 import software.amazon.awscdk.services.iam.PolicyStatement;
+import software.amazon.awscdk.services.iam.PolicyStatementProps;
 import software.amazon.awscdk.services.lambda.Alias;
 import software.amazon.awscdk.services.lambda.Code;
 import software.amazon.awscdk.services.lambda.Function;
 import software.amazon.awscdk.services.lambda.Runtime;
 import software.amazon.awscdk.services.lambda.Version;
+import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.RetentionDays;
 import software.constructs.Construct;
 
@@ -31,13 +44,43 @@ public class BankAccountsTrackStack extends Stack {
   public BankAccountsTrackStack(final Construct parent, final String id, final StackProps props) {
     super(parent, id, props);
 
-    final var lambdaBankStatusUpdater = createLambda();
+    final var lambdaStatusUpdaterAlias = createUpdaterLambda();
+    createRunSchedule(lambdaStatusUpdaterAlias);
 
-    final var lambdaAlias = createVersionAndUpdateAlias(lambdaBankStatusUpdater);
+    final var lambdaBotAuthorizerAlias = createBotAuthorizerLambda();
 
-    //createRunSchedule(lambdaAlias);
+    final var lambdaTelegramBotAlias = createTelegramBotLambda();
 
-    addSsmReadPermissions(lambdaBankStatusUpdater);
+    final RequestAuthorizer authorizer = RequestAuthorizer.Builder.create(this, "TelegramAuthorizerBot")
+      .handler(lambdaBotAuthorizerAlias)
+      .identitySources(List.of("method.request.header.X-Telegram-Bot-Api-Secret-Token"))
+      .resultsCacheTtl(Duration.hours(1))
+      .build();
+
+    final LogGroup apiLogGroup = LogGroup.Builder.create(this, "ApiGatewayLogGroup")
+      .logGroupName("/aws/apigateway/TelegramBotApi")
+      .removalPolicy(RemovalPolicy.DESTROY)
+      .retention(RetentionDays.ONE_DAY)
+      .build();
+
+    final RestApi restApi = RestApi.Builder.create(this, "TelegramBotApi")
+      .restApiName("TelegramBotApi")
+      .cloudWatchRole(true)
+      .cloudWatchRoleRemovalPolicy(RemovalPolicy.DESTROY)
+      .deployOptions(StageOptions.builder()
+        .stageName("prod")
+        .loggingLevel(MethodLoggingLevel.INFO)
+        .accessLogDestination(new LogGroupLogDestination(apiLogGroup))
+        .accessLogFormat(AccessLogFormat.jsonWithStandardFields())
+        .build())
+      .build();
+
+    final IResource hookResource = restApi.getRoot().addResource("hook");
+    final Resource eventResource = hookResource.addResource("event");
+    eventResource.addMethod("POST", new LambdaIntegration(lambdaTelegramBotAlias), MethodOptions.builder()
+      .authorizer(authorizer)
+      .authorizationType(AuthorizationType.CUSTOM)
+      .build());
   }
 
   private void addSsmReadPermissions(final Function lambdaBankStatusUpdater) {
@@ -103,28 +146,27 @@ public class BankAccountsTrackStack extends Stack {
 
   private void createRunSchedule(final Alias lambdaAlias) {
     final var everyFiveMinutesRule = Rule.Builder.create(this, "BankStatusUpdaterRule")
-      .schedule(Schedule.expression("rate(5 minutes)"))
+      .schedule(Schedule.rate(Duration.hours(2)))
       .build();
 
     everyFiveMinutesRule.addTarget(new LambdaFunction(lambdaAlias));
   }
 
-  private Alias createVersionAndUpdateAlias(final Function lambdaBankStatusUpdater) {
-    final var lambdaVersion = Version.Builder.create(this, "LambdaVersion")
-      .lambda(lambdaBankStatusUpdater)
+  private Alias createVersionAndUpdateAlias(final Function lambda, final String id) {
+    final var lambdaVersion = Version.Builder.create(this, id + "LambdaVersion")
+      .lambda(lambda)
       .description("New lambda version")
       .removalPolicy(RemovalPolicy.DESTROY)
       .build();
 
-    final var lambdaAlias = Alias.Builder.create(this, "LambdaAlias")
+    return Alias.Builder.create(this, id + "LambdaAlias")
       .aliasName("prod")
       .version(lambdaVersion)
       .build();
-    return lambdaAlias;
   }
 
-  private Function createLambda() {
-    final var lambdaBankStatusUpdater = Function.Builder.create(this, "BankStatusUpdater")
+  private Alias createUpdaterLambda() {
+    final var lambda = Function.Builder.create(this, "BankStatusUpdater")
       .runtime(Runtime.JAVA_17)
       .code(Code.fromAsset("../lambda-bank-status-updater/build/function.zip"))
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
@@ -132,7 +174,43 @@ public class BankAccountsTrackStack extends Stack {
       .memorySize(256)
       .timeout(Duration.minutes(10))
       .build();
-    return lambdaBankStatusUpdater;
+
+    addSsmReadPermissions(lambda);
+
+    return createVersionAndUpdateAlias(lambda, "BankStatusUpdater");
+  }
+
+  private Alias createTelegramBotLambda() {
+    final var lambda = Function.Builder.create(this, "BankTelegramBot")
+      .runtime(Runtime.JAVA_17)
+      .code(Code.fromAsset("../lambda-telegram-bot/build/function.zip"))
+      .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
+      .logRetention(RetentionDays.ONE_DAY)
+      .memorySize(256)
+      .timeout(Duration.minutes(10))
+      .build();
+
+    return createVersionAndUpdateAlias(lambda, "BankTelegramBot");
+  }
+
+  private Alias createBotAuthorizerLambda() {
+    final var lambda = Function.Builder.create(this, "BotAuthorizer")
+      .runtime(Runtime.JAVA_17)
+      .code(Code.fromAsset("../lambda-bot-authorizer/build/function.zip"))
+      .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
+      .logRetention(RetentionDays.ONE_DAY)
+      .memorySize(256)
+      .timeout(Duration.seconds(60))
+      .build();
+
+    final String secretParamKey = "/bot/telegram/secret";
+
+    lambda.addToRolePolicy(new PolicyStatement(PolicyStatementProps.builder()
+      .actions(List.of("ssm:GetParameter"))
+      .resources(List.of("arn:aws:ssm:" + this.getRegion() + ":" + this.getAccount() + ":parameter" + secretParamKey))
+      .build()));
+
+    return createVersionAndUpdateAlias(lambda, "BotAuthorizer");
   }
 
 }

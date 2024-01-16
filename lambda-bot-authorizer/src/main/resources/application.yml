@@ -1,0 +1,14 @@
+app:
+  secret-name: /bot/telegram/secret
+  telegram-header: X-Telegram-Bot-Api-Secret-Token
+
+quarkus:
+  log:
+    level: INFO
+    min-level: DEBUG
+    console:
+      enable: true
+      format: '%d{HH:mm:ss.SSS} %-5p (%-10t) [%c{2.}] %s%e%n'
+    category:
+      "com.yuriytkach":
+        level: DEBUG

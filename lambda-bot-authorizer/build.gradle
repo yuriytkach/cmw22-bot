@@ -1,0 +1,9 @@
+plugins {
+    id 'io.quarkus'
+    id 'io.freefair.lombok' version '8.4'
+    id 'jacoco'
+}
+
+dependencies {
+    implementation 'io.quarkus:quarkus-rest-client-jackson'
+}

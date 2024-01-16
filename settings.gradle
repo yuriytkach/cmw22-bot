@@ -14,4 +14,5 @@ include 'common'
 include 'lambda-bank-status-updater'
 include 'lambda-telegram-bot'
 include 'cdk'
+include 'lambda-bot-authorizer'
 
