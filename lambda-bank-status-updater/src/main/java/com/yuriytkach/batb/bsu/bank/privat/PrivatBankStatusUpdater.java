@@ -70,7 +70,7 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
       log.warn("Unknown currency: {}", balance.currency());
     }
 
-    final var result = curr.map(currency -> BankAccountStatus.builder()
+    return curr.map(currency -> BankAccountStatus.builder()
       .accountId(balance.acc())
       .accountName(bankAccount.name())
       .bankType(BANK_TYPE)
@@ -80,9 +80,6 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
       .updatedAt(clock.instant())
       .build()
     );
-
-    log.info("Converting: {} to {}", balance, result);
-    return result;
   }
 
   private boolean shouldProcessAccount(final Balance balance, final Collection<String> accounts) {

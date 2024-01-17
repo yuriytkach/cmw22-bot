@@ -3,7 +3,6 @@ package com.yuriytkach.batb.common.storage.ssm;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.BankAccountStatus;
@@ -39,8 +38,7 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
     try {
       final Set<BankAccountStatus> finalRez = new HashSet<>();
       String nextToken = null;
-      Set<BankAccountStatus> result = new HashSet<>();
-      AtomicInteger counter = new AtomicInteger(0);
+      Set<BankAccountStatus> result;
       do {
         final var request = GetParametersByPathRequest.builder()
           .withDecryption(true)
@@ -50,7 +48,6 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
           request.nextToken(nextToken);
         }
         log.info("Reading ssm parameters by path `{}`. Next token: {}", path, nextToken != null);
-        counter.incrementAndGet();
 
         final GetParametersByPathResponse response = ssmClient.getParametersByPath(request.build());
         if (response.hasParameters()) {
@@ -66,9 +63,9 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
           log.warn("No more params found by path `{}`", path);
           break;
         }
-      } while (!result.isEmpty() && nextToken != null && counter.get() < 5);
+      } while (!result.isEmpty() && nextToken != null);
       log.info("Total account balances found by path `{}`: {}", path, finalRez.size());
-      return finalRez;
+      return Set.copyOf(finalRez);
     } catch (final Exception ex) {
       log.error("Cannot read ssm parameters by path `{}`: {}", path, ex.getMessage());
       return Set.of();

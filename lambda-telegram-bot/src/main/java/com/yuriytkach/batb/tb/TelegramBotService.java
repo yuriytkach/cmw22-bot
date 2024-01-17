@@ -3,6 +3,7 @@ package com.yuriytkach.batb.tb;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.telegram.telegrambots.meta.api.objects.Message;
 
@@ -38,7 +39,7 @@ class TelegramBotService {
         response.setMessageThreadId(message.getReplyToMessage().getMessageThreadId());
       }
 
-      if (message.getText().startsWith(appProperties.botName() + " " + commandsProperties.help())) {
+      if (isHelpCommand(message.getText())) {
         response.setText("""
           Commands:
           /status - show current account balances
@@ -89,8 +90,17 @@ class TelegramBotService {
   }
 
   private boolean isMyText(final String text) {
-    return text.startsWith(appProperties.botName() + " " + commandsProperties.status())
-      || text.startsWith(appProperties.botName() + " " + commandsProperties.help());
+    return isHelpCommand(text) || Stream.of(
+      appProperties.botName() + " " + commandsProperties.status(),
+      commandsProperties.status() + appProperties.botName()
+    ).anyMatch(text::startsWith);
+  }
+
+  private boolean isHelpCommand(final String text) {
+    return Stream.of(
+      appProperties.botName() + " " + commandsProperties.help(),
+      commandsProperties.help() + appProperties.botName()
+    ).anyMatch(text::startsWith);
   }
 
 }

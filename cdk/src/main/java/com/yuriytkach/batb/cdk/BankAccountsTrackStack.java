@@ -30,7 +30,6 @@ import software.amazon.awscdk.services.lambda.Alias;
 import software.amazon.awscdk.services.lambda.Code;
 import software.amazon.awscdk.services.lambda.Function;
 import software.amazon.awscdk.services.lambda.Runtime;
-import software.amazon.awscdk.services.lambda.Version;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.RetentionDays;
 import software.constructs.Construct;
@@ -153,15 +152,10 @@ public class BankAccountsTrackStack extends Stack {
   }
 
   private Alias createVersionAndUpdateAlias(final Function lambda, final String id) {
-    final var lambdaVersion = Version.Builder.create(this, id + "LambdaVersion")
-      .lambda(lambda)
-      .description("New lambda version")
-      .removalPolicy(RemovalPolicy.DESTROY)
-      .build();
-
+    final var lambdaCurrentVersion = lambda.getCurrentVersion();
     return Alias.Builder.create(this, id + "LambdaAlias")
       .aliasName("prod")
-      .version(lambdaVersion)
+      .version(lambdaCurrentVersion)
       .build();
   }
 
@@ -187,7 +181,7 @@ public class BankAccountsTrackStack extends Stack {
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
       .logRetention(RetentionDays.ONE_DAY)
       .memorySize(256)
-      .timeout(Duration.minutes(1))
+      .timeout(Duration.seconds(25))
       .build();
 
     final String secretParamKey = "/bot/telegram/chat";
@@ -231,12 +225,12 @@ public class BankAccountsTrackStack extends Stack {
 
   private Alias createBotAuthorizerLambda() {
     final var lambda = Function.Builder.create(this, "BotAuthorizer")
-      .runtime(Runtime.JAVA_17)
+      .runtime(Runtime.PROVIDED_AL2023)
       .code(Code.fromAsset("../lambda-bot-authorizer/build/function.zip"))
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
       .logRetention(RetentionDays.ONE_DAY)
-      .memorySize(256)
-      .timeout(Duration.seconds(60))
+      .memorySize(128)
+      .timeout(Duration.seconds(10))
       .build();
 
     final String secretParamKey = "/bot/telegram/secret";
