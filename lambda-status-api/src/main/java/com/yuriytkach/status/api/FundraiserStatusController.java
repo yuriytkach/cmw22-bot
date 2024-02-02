@@ -1,7 +1,5 @@
 package com.yuriytkach.status.api;
 
-import java.time.Instant;
-
 import org.slf4j.MDC;
 
 import jakarta.ws.rs.GET;
@@ -20,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class FundraiserStatusController {
 
+  private final FundService fundService;
+
   @GET
   @Path("/{fundraiserId}")
   @Produces(MediaType.APPLICATION_JSON)
@@ -30,26 +30,24 @@ public class FundraiserStatusController {
     MDC.put("awsRequestId", context.getAwsRequestId());
     log.info("Get Fundraiser Status: {} AWS Request ID: {}", fundraiserId, context.getAwsRequestId());
 
-    if (!fundraiserId.equals("ppo")) {
-      return Response.status(Response.Status.NOT_FOUND).build();
-    }
+    final var fundInfo = fundService.getFundStatus(fundraiserId);
 
-    final var fundraiserStatus = FundraiserStatus.builder()
-      .goal(1500000)
-      .raised(150)
-      .spent(0)
-      .name("Приціли для моб ППО")
-      .description("""
-        30% БПЛА і ракет йдуть транзитом через Чернігівську область на Київ. Що робити? Збивати, нах..! \
-        Долучайтеся до збору на тепловізійні приціли і кріплення для мобільних груп ППО на пікапах, \
-        які не пропустять летючу нечисть на наші мирні міста!\
-        """)
-      .lastUpdatedAt(Instant.parse("2024-01-31T20:15:17Z"))
-      .build();
+    return fundInfo.map(fund -> {
+      log.info("Fundraiser status: {}", fund);
 
-    return addCorsHeaders(Response.ok(fundraiserStatus))
-      .cacheControl(createCacheControl())
-      .build();
+      final var fundraiserStatus = FundraiserStatusResponse.builder()
+        .goal(fund.info().goal())
+        .raised(fund.raised() / 100)
+        .spent(fund.spent() / 100)
+        .name(fund.info().name())
+        .description(fund.info().description())
+        .lastUpdatedAt(fund.updatedAt())
+        .build();
+
+      return addCorsHeaders(Response.ok(fundraiserStatus))
+        .cacheControl(createCacheControl())
+        .build();
+    }).orElseGet(() -> Response.status(Response.Status.NOT_FOUND).build());
   }
 
   private CacheControl createCacheControl() {

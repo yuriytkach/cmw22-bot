@@ -18,4 +18,6 @@ public interface SsmProperties {
   @WithDefault("statuses")
   String statuses();
 
+  @WithDefault("/funds/")
+  String funds();
 }

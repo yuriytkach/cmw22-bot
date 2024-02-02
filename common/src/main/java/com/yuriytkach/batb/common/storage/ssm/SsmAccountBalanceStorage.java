@@ -12,9 +12,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.StreamEx;
 import software.amazon.awssdk.services.ssm.SsmClient;
+import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
+import software.amazon.awssdk.services.ssm.model.GetParameterResponse;
 import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
 import software.amazon.awssdk.services.ssm.model.GetParametersByPathResponse;
 import software.amazon.awssdk.services.ssm.model.Parameter;
+import software.amazon.awssdk.services.ssm.model.ParameterNotFoundException;
 import software.amazon.awssdk.services.ssm.model.ParameterType;
 import software.amazon.awssdk.services.ssm.model.PutParameterRequest;
 
@@ -72,6 +75,27 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
     }
   }
 
+  @Override
+  public Optional<BankAccountStatus> getById(final String accountId) {
+    final String path = getPath(accountId);
+
+    final var request = GetParameterRequest.builder()
+      .name(path)
+      .withDecryption(true)
+      .build();
+    try {
+      final GetParameterResponse response = ssmClient.getParameter(request);
+      return Optional.of(response.parameter().value())
+        .flatMap(this::deserializeBankStatus);
+    } catch (final ParameterNotFoundException ex) {
+      log.info("SSM Parameter not found: {}", path);
+      return Optional.empty();
+    } catch (final Exception ex) {
+      log.error("Error reading secret {}: {}", path, ex.getMessage());
+      return Optional.empty();
+    }
+  }
+
   private Optional<BankAccountStatus> deserializeBankStatus(final String json) {
     try {
       return Optional.of(objectMapper.readValue(json, BankAccountStatus.class));
@@ -82,7 +106,7 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
   }
 
   private void save(final BankAccountStatus bankAccountStatus) {
-    final String path = getPath(bankAccountStatus);
+    final String path = getPath(bankAccountStatus.shortAccountId());
     log.info("Saving account balance to SSM path: {}", path);
 
     try {
@@ -101,9 +125,7 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
     }
   }
 
-  private String getPath(final BankAccountStatus bankAccountStatus) {
-    return ssmProperties.prefix()
-      + ssmProperties.statuses() + "/"
-      + bankAccountStatus.shortAccountId();
+  private String getPath(final String accountId) {
+    return ssmProperties.prefix() + ssmProperties.statuses() + "/" + accountId;
   }
 }

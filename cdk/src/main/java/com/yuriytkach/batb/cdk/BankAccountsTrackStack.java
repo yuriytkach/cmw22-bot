@@ -47,7 +47,7 @@ public class BankAccountsTrackStack extends Stack {
   public BankAccountsTrackStack(final Construct parent, final String id, final StackProps props) {
     super(parent, id, props);
 
-    final var lambdaStatusUpdaterAlias = createUpdaterLambda();
+    final var lambdaStatusUpdaterAlias = createBankStatusUpdaterLambda();
     createRunSchedule(lambdaStatusUpdaterAlias);
 
     final var lambdaBotAuthorizerAlias = createBotAuthorizerLambda();
@@ -158,7 +158,7 @@ public class BankAccountsTrackStack extends Stack {
 
   private void createRunSchedule(final Alias lambdaAlias) {
     final var everyFiveMinutesRule = Rule.Builder.create(this, "BankStatusUpdaterRule")
-      .schedule(Schedule.rate(Duration.hours(2)))
+      .schedule(Schedule.rate(Duration.minutes(10)))
       .build();
 
     everyFiveMinutesRule.addTarget(new LambdaFunction(lambdaAlias));
@@ -172,7 +172,7 @@ public class BankAccountsTrackStack extends Stack {
       .build();
   }
 
-  private Alias createUpdaterLambda() {
+  private Alias createBankStatusUpdaterLambda() {
     final var lambda = Function.Builder.create(this, "BankStatusUpdater")
       .runtime(Runtime.JAVA_17)
       .code(Code.fromAsset("../lambda-bank-status-updater/build/function.zip"))
@@ -267,6 +267,37 @@ public class BankAccountsTrackStack extends Stack {
       .memorySize(128)
       .timeout(Duration.seconds(10))
       .build();
+
+    PolicyStatement readPolicy = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParameter"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/funds/*",
+            "arn:aws:ssm:%s:%s:parameter/batb/statuses/*"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
+          .toList())
+      .build();
+
+    PolicyStatement writeAndReadStatusesPolicy = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:PutParameter"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/funds/*"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
+          .toList())
+      .build();
+
+    lambda.getRole().attachInlinePolicy(
+      new Policy(this, "StatusApiLambda" + "ParameterStorePolicy", PolicyProps.builder()
+        .statements(Arrays.asList(readPolicy, writeAndReadStatusesPolicy))
+        .build())
+    );
 
     return createVersionAndUpdateAlias(lambda, "StatusApiLambda");
   }
