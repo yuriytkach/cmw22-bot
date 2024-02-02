@@ -37,7 +37,7 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
   private final Clock clock;
 
   @Override
-  public void updateAccountStatuses() {
+  public void updateAccountStatuses(final Map<String, BankAccountStatus> oldAccountStatuses) {
     MDC.put("bankType", BANK_TYPE.name());
     log.info("Updating account statuses for PrivatBank");
 
@@ -46,15 +46,18 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
     final List<String> tokens = bankAccessStorage.getListOfTokens(BANK_TYPE);
     log.info("Loaded tokens: {}", tokens.size());
 
-    final var allBankAccountStatuses = StreamEx.of(tokens)
+    final var retrievedAccountStatuses = StreamEx.of(tokens)
       .flatMap(token -> privatService.readAllAvailablePrivatAccounts(token).stream())
       .filter(balance -> shouldProcessAccount(balance, accounts.keySet()))
       .map(balance -> buildBankAccountStatus(balance, accounts.get(balance.acc())))
       .flatMap(Optional::stream)
       .toImmutableSet();
-    log.info("Total bank account statuses: {}", allBankAccountStatuses.size());
+    log.info("Total bank account statuses retrieved: {}", retrievedAccountStatuses.size());
 
-    accountBalanceStorage.saveAll(allBankAccountStatuses);
+    final var updatedAccountStatuses = findUpdatedStatuses(oldAccountStatuses, retrievedAccountStatuses);
+    log.info("Total bank account statuses updated: {}", updatedAccountStatuses.size());
+
+    accountBalanceStorage.saveAll(updatedAccountStatuses);
   }
 
   private Map<String, BankAccount> readBankAccounts() {

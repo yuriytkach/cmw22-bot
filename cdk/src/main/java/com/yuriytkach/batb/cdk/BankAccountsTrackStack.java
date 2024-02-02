@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+import one.util.streamex.StreamEx;
 import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
@@ -95,7 +96,7 @@ public class BankAccountsTrackStack extends Stack {
       .build());
   }
 
-  private void addSsmReadPermissions(final Function lambda, final String id) {
+  private void addSsmReadPermissionsForBankStatusUpdaterLambda(final Function lambda, final String id) {
     // Retrieve properties
     String prefix = "batb";
     String tokens = "tokens";
@@ -105,7 +106,7 @@ public class BankAccountsTrackStack extends Stack {
     PolicyStatement readPolicy = PolicyStatement.Builder.create()
       .actions(List.of("ssm:GetParametersByPath"))
       .resources(
-        Stream.of(tokens)
+        StreamEx.of(tokens)
           .flatMap(suffix ->
             Stream.of(
               "arn:aws:ssm:%s:%s:parameter/%s/*/%s",
@@ -118,6 +119,16 @@ public class BankAccountsTrackStack extends Stack {
               suffix
             ))
           )
+          .append(Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/%s/%s",
+            "arn:aws:ssm:%s:%s:parameter/%s/%s/",
+            "arn:aws:ssm:%s:%s:parameter/%s/%s/*"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount(),
+            prefix,
+            statuses
+          )))
           .toList())
       .build();
 
@@ -182,7 +193,7 @@ public class BankAccountsTrackStack extends Stack {
       .timeout(Duration.minutes(10))
       .build();
 
-    addSsmReadPermissions(lambda, "BankStatusUpdater");
+    addSsmReadPermissionsForBankStatusUpdaterLambda(lambda, "BankStatusUpdater");
 
     return createVersionAndUpdateAlias(lambda, "BankStatusUpdater");
   }

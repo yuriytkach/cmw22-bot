@@ -1,6 +1,7 @@
 package com.yuriytkach.batb.bsu.bank.mono;
 
 import java.time.Clock;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,21 +34,24 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
   private final Clock clock;
 
   @Override
-  public void updateAccountStatuses() {
+  public void updateAccountStatuses(final Map<String, BankAccountStatus> oldAccountStatuses) {
     MDC.put("bankType", BANK_TYPE.name());
     log.info("Updating account statuses for Monobank");
 
     final Set<BankAccount> accounts = readBankAccounts();
 
-    final var allBankAccountStatuses = StreamEx.of(accounts)
+    final var retrievedAccountStatuses = StreamEx.of(accounts)
       .mapToEntry(account -> monoService.readJarStatus(account.id()))
       .flatMapValues(Optional::stream)
       .mapKeyValue(this::buildBankAccountStatus)
       .flatMap(Optional::stream)
       .toImmutableSet();
-    log.info("Total bank account statuses: {}", allBankAccountStatuses.size());
+    log.info("Total bank account statuses retrieved: {}", retrievedAccountStatuses.size());
 
-    accountBalanceStorage.saveAll(allBankAccountStatuses);
+    final var updatedAccountStatuses = findUpdatedStatuses(oldAccountStatuses, retrievedAccountStatuses);
+    log.info("Total bank account statuses updated: {}", updatedAccountStatuses.size());
+
+    accountBalanceStorage.saveAll(updatedAccountStatuses);
   }
 
   private Set<BankAccount> readBankAccounts() {
