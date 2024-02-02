@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import com.yuriytkach.batb.common.secret.SecretsReader;
 
+import io.quarkus.cache.CacheResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.ssm.SsmClient;
@@ -18,6 +19,7 @@ public class SsmSecretsReader implements SecretsReader {
   private final SsmClient ssm;
 
   @Override
+  @CacheResult(cacheName = "ssm-secrets")
   public Optional<String> readSecret(final String secretName) {
     final var request = GetParameterRequest.builder()
       .name(secretName)

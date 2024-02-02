@@ -68,6 +68,7 @@ class TelegramBotService {
     final var builder = new StringBuilder();
     builder.append("🏦 Current account balances:\n\n");
     accountBalances.stream()
+      .filter(accountBalance -> accountBalance.amount() > 0)
       .sorted(Comparator
         .comparing(BankAccountStatus::bankType)
         .thenComparing(BankAccountStatus::amount).reversed()

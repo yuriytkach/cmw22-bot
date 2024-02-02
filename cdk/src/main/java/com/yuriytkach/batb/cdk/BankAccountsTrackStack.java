@@ -10,6 +10,8 @@ import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.services.apigateway.AccessLogFormat;
 import software.amazon.awscdk.services.apigateway.AuthorizationType;
+import software.amazon.awscdk.services.apigateway.DomainName;
+import software.amazon.awscdk.services.apigateway.DomainNameProps;
 import software.amazon.awscdk.services.apigateway.IResource;
 import software.amazon.awscdk.services.apigateway.LambdaIntegration;
 import software.amazon.awscdk.services.apigateway.LogGroupLogDestination;
@@ -19,6 +21,8 @@ import software.amazon.awscdk.services.apigateway.RequestAuthorizer;
 import software.amazon.awscdk.services.apigateway.Resource;
 import software.amazon.awscdk.services.apigateway.RestApi;
 import software.amazon.awscdk.services.apigateway.StageOptions;
+import software.amazon.awscdk.services.certificatemanager.Certificate;
+import software.amazon.awscdk.services.certificatemanager.CertificateValidation;
 import software.amazon.awscdk.services.events.Rule;
 import software.amazon.awscdk.services.events.Schedule;
 import software.amazon.awscdk.services.events.targets.LambdaFunction;
@@ -50,6 +54,8 @@ public class BankAccountsTrackStack extends Stack {
 
     final var lambdaTelegramBotAlias = createTelegramBotLambda();
 
+    final var lambdaStatusApiAlias = createStatusApiLambda();
+
     final RequestAuthorizer authorizer = RequestAuthorizer.Builder.create(this, "TelegramAuthorizerBot")
       .handler(lambdaBotAuthorizerAlias)
       .identitySources(List.of("method.request.header.X-Telegram-Bot-Api-Secret-Token"))
@@ -62,8 +68,8 @@ public class BankAccountsTrackStack extends Stack {
       .retention(RetentionDays.ONE_DAY)
       .build();
 
-    final RestApi restApi = RestApi.Builder.create(this, "TelegramBotApi")
-      .restApiName("TelegramBotApi")
+    final RestApi restApi = RestApi.Builder.create(this, "StatusApi")
+      .restApiName("StatusApi")
       .cloudWatchRole(true)
       .cloudWatchRoleRemovalPolicy(RemovalPolicy.DESTROY)
       .deployOptions(StageOptions.builder()
@@ -74,11 +80,18 @@ public class BankAccountsTrackStack extends Stack {
         .build())
       .build();
 
+    customDomainForRestApi(restApi);
+
     final IResource hookResource = restApi.getRoot().addResource("hook");
     final Resource eventResource = hookResource.addResource("event");
     eventResource.addMethod("POST", new LambdaIntegration(lambdaTelegramBotAlias), MethodOptions.builder()
       .authorizer(authorizer)
       .authorizationType(AuthorizationType.CUSTOM)
+      .build());
+
+    final IResource statusResource = restApi.getRoot().addResource("status");
+    final Resource fundraiserResource = statusResource.addResource("{fundraiserId}");
+    fundraiserResource.addMethod("GET", new LambdaIntegration(lambdaStatusApiAlias), MethodOptions.builder()
       .build());
   }
 
@@ -177,10 +190,12 @@ public class BankAccountsTrackStack extends Stack {
   private Alias createTelegramBotLambda() {
     final var lambda = Function.Builder.create(this, "BankTelegramBot")
       .runtime(Runtime.JAVA_17)
+//      .runtime(Runtime.PROVIDED_AL2023)
       .code(Code.fromAsset("../lambda-telegram-bot/build/function.zip"))
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
       .logRetention(RetentionDays.ONE_DAY)
       .memorySize(256)
+//      .memorySize(128)
       .timeout(Duration.seconds(25))
       .build();
 
@@ -241,6 +256,39 @@ public class BankAccountsTrackStack extends Stack {
       .build()));
 
     return createVersionAndUpdateAlias(lambda, "BotAuthorizer");
+  }
+
+  private Alias createStatusApiLambda() {
+    final var lambda = Function.Builder.create(this, "StatusApiLambda")
+      .runtime(Runtime.PROVIDED_AL2023)
+      .code(Code.fromAsset("../lambda-status-api/build/function.zip"))
+      .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
+      .logRetention(RetentionDays.ONE_DAY)
+      .memorySize(128)
+      .timeout(Duration.seconds(10))
+      .build();
+
+    return createVersionAndUpdateAlias(lambda, "StatusApiLambda");
+  }
+
+  private void customDomainForRestApi(final RestApi restApi) {
+    final Certificate cert = Certificate.Builder.create(this, "YuriyTkachComCertificate")
+      .domainName("*.cmw22-bot.yuriytkach.com")
+      .subjectAlternativeNames(List.of("cmw22-bot.yuriytkach.com"))
+      .validation(CertificateValidation.fromDns())
+      .certificateName("cmw22-bot.yuriytkach.com")
+      .build();
+
+    // Create a custom domain for the API Gateway
+    final DomainNameProps domainOptions = DomainNameProps.builder()
+      .certificate(cert)
+      .domainName("cmw22-bot.yuriytkach.com")
+      .build();
+
+    final DomainName domainName = new DomainName(this, "APIDomain", domainOptions);
+
+    // Map the custom domain to the API Gateway
+    domainName.addBasePathMapping(restApi);
   }
 
 }

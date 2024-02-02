@@ -15,4 +15,5 @@ include 'lambda-bank-status-updater'
 include 'lambda-telegram-bot'
 include 'cdk'
 include 'lambda-bot-authorizer'
+include 'lambda-status-api'
 
