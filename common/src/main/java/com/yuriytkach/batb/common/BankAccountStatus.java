@@ -16,11 +16,17 @@ public record BankAccountStatus (
   long amountUah,
 
   Currency currency,
-  Instant updatedAt
+  Instant updatedAt,
+
+  Boolean ignoreForTotal
 ) {
 
   public String shortAccountId() {
     return accountId.substring(0, 4) + "-" + accountId.substring(accountId.length() - 2);
+  }
+
+  public boolean isIgnoreForTotal() {
+    return ignoreForTotal != null && ignoreForTotal;
   }
 
 }

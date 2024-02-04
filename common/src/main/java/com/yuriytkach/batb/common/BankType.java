@@ -4,5 +4,7 @@ public enum BankType {
 
   PRIVAT,
 
-  MONO
+  MONO,
+
+  GSHEET
 }

@@ -68,7 +68,7 @@ class TelegramBotService {
     final var builder = new StringBuilder();
     builder.append("🏦 Current account balances:\n\n");
     accountBalances.stream()
-      .filter(accountBalance -> accountBalance.amount() > 0)
+      .filter(accountBalance -> accountBalance.amount() > 0 && !accountBalance.isIgnoreForTotal())
       .sorted(Comparator
         .comparing(BankAccountStatus::bankType)
         .thenComparing(BankAccountStatus::amount).reversed()
@@ -78,6 +78,7 @@ class TelegramBotService {
       final String bankType = switch (balance.bankType()) {
         case PRIVAT -> "🟢";
         case MONO -> "⚫";
+        case GSHEET -> "🔵";
       };
       builder.append(bankType).append(" ");
       builder.append(balance.accountName()).append(": ");
