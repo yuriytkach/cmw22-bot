@@ -1,5 +1,7 @@
 package com.yuriytkach.batb.tb;
 
+import static java.util.function.Predicate.not;
+
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
@@ -61,6 +63,7 @@ class TelegramBotService {
 
   private String createAccountBalancesText(final Set<BankAccountStatus> accountBalances) {
     final long totalUah = StreamEx.of(accountBalances)
+      .filter(not(BankAccountStatus::isIgnoreForTotal))
       .map(BankAccountStatus::amountUah)
       .mapToLong(Long::longValue)
       .sum();
