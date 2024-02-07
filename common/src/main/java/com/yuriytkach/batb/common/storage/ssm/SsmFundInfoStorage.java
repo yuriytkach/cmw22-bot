@@ -29,7 +29,6 @@ public class SsmFundInfoStorage implements FundInfoStorage {
     log.info("Reading fund info from SSM path: {}", path);
     final var request = GetParameterRequest.builder()
       .name(path)
-      .withDecryption(true)
       .build();
     try {
       final GetParameterResponse response = ssm.getParameter(request);
@@ -52,7 +51,7 @@ public class SsmFundInfoStorage implements FundInfoStorage {
       .map(json -> PutParameterRequest.builder()
         .name(path)
         .value(json)
-        .type(ParameterType.SECURE_STRING)
+        .type(ParameterType.STRING)
         .overwrite(true)
         .description("Fund information")
         .build())

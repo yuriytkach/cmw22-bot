@@ -44,7 +44,6 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
       Set<BankAccountStatus> result;
       do {
         final var request = GetParametersByPathRequest.builder()
-          .withDecryption(true)
           .path(path);
 
         if (nextToken != null) {
@@ -81,7 +80,6 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
 
     final var request = GetParameterRequest.builder()
       .name(path)
-      .withDecryption(true)
       .build();
     try {
       final GetParameterResponse response = ssmClient.getParameter(request);
@@ -113,7 +111,7 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
       final var request = PutParameterRequest.builder()
         .name(path)
         .value(objectMapper.writeValueAsString(bankAccountStatus))
-        .type(ParameterType.SECURE_STRING)
+        .type(ParameterType.STRING)
         .overwrite(true)
         .description("Account balance status")
         .build();
