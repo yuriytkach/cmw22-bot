@@ -80,7 +80,7 @@ public class FundService {
     return FundStatus.builder()
       .info(fundInfo)
       .raised(Math.max(totalRaised, fundInfo.lastRaised()))
-      .spent(Math.max(spent, fundInfo.lastSpent()))
+      .spent(Math.max(Math.abs(spent), fundInfo.lastSpent()))
       .updatedAt(maxUpdatedAt)
       .hasUpdates(maxUpdatedAt.isAfter(fundInfo.lastUpdatedAt()))
       .build();
