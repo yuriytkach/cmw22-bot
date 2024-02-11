@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.slf4j.MDC;
@@ -37,27 +38,50 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
   private final Clock clock;
 
   @Override
-  public void updateAccountStatuses(final Map<String, BankAccountStatus> oldAccountStatuses) {
+  public BankType bankType() {
+    return BANK_TYPE;
+  }
+
+  @Override
+  public void updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
     MDC.put("bankType", BANK_TYPE.name());
-    log.info("Updating account statuses for PrivatBank");
+    final Map<String, BankAccount> configuredAccounts = readBankAccounts();
+    log.info("Updating all account statuses for PrivatBank: {}", configuredAccounts.size());
 
-    final Map<String, BankAccount> accounts = readBankAccounts();
+    updateAccountStatuses(previousStatuses, configuredAccounts);
+  }
 
+  @Override
+  public Set<BankAccountStatus> updateSpecifiedAccountStatuses(final Map<String, BankAccountStatus> specificStatuses) {
+    final Map<String, BankAccount> accountsToUpdate = StreamEx.of(specificStatuses.values())
+      .map(status -> new BankAccount(status.accountId(), status.accountName()))
+      .toMap(BankAccount::id, Function.identity());
+
+    log.info("Updating account statuses for PrivatBank: {}", accountsToUpdate.keySet());
+    return updateAccountStatuses(specificStatuses, accountsToUpdate);
+  }
+
+  private Set<BankAccountStatus> updateAccountStatuses(
+    final Map<String, BankAccountStatus> previousStatuses,
+    final Map<String, BankAccount> configuredAccounts
+  ) {
     final List<String> tokens = bankAccessStorage.getListOfTokens(BANK_TYPE);
     log.info("Loaded tokens: {}", tokens.size());
 
     final var retrievedAccountStatuses = StreamEx.of(tokens)
       .flatMap(token -> privatService.readAllAvailablePrivatAccounts(token).stream())
-      .filter(balance -> shouldProcessAccount(balance, accounts.keySet()))
-      .map(balance -> buildBankAccountStatus(balance, accounts.get(balance.acc())))
+      .filter(balance -> shouldProcessAccount(balance, configuredAccounts.keySet()))
+      .map(balance -> buildBankAccountStatus(balance, configuredAccounts.get(balance.acc())))
       .flatMap(Optional::stream)
       .toImmutableSet();
     log.info("Total bank account statuses retrieved: {}", retrievedAccountStatuses.size());
 
-    final var updatedAccountStatuses = findUpdatedStatuses(oldAccountStatuses, retrievedAccountStatuses);
+    final var updatedAccountStatuses = findUpdatedStatuses(previousStatuses, retrievedAccountStatuses);
     log.info("Total bank account statuses updated: {}", updatedAccountStatuses.size());
 
     accountBalanceStorage.saveAll(updatedAccountStatuses);
+
+    return previousStatusesWithUpdated(previousStatuses, updatedAccountStatuses);
   }
 
   private Map<String, BankAccount> readBankAccounts() {

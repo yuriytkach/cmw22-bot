@@ -2,6 +2,7 @@ package com.yuriytkach.batb.cdk;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import one.util.streamex.StreamEx;
@@ -25,6 +26,7 @@ import software.amazon.awscdk.services.apigateway.StageOptions;
 import software.amazon.awscdk.services.certificatemanager.Certificate;
 import software.amazon.awscdk.services.certificatemanager.CertificateValidation;
 import software.amazon.awscdk.services.events.Rule;
+import software.amazon.awscdk.services.events.RuleTargetInput;
 import software.amazon.awscdk.services.events.Schedule;
 import software.amazon.awscdk.services.events.targets.LambdaFunction;
 import software.amazon.awscdk.services.iam.Policy;
@@ -49,8 +51,7 @@ public class BankAccountsTrackStack extends Stack {
   public BankAccountsTrackStack(final Construct parent, final String id, final StackProps props) {
     super(parent, id, props);
 
-    final var lambdaStatusUpdaterAlias = createBankStatusUpdaterLambda();
-    createRunSchedule(lambdaStatusUpdaterAlias);
+    createBankStatusUpdaterLambda();
 
     final var lambdaBotAuthorizerAlias = createBotAuthorizerLambda();
 
@@ -103,6 +104,7 @@ public class BankAccountsTrackStack extends Stack {
     String tokens = "tokens";
     String accounts = "accounts";
     String statuses = "statuses";
+    String funds = "funds";
 
     PolicyStatement readPolicy = PolicyStatement.Builder.create()
       .actions(List.of("ssm:GetParametersByPath"))
@@ -141,14 +143,18 @@ public class BankAccountsTrackStack extends Stack {
           Stack.of(this).getAccount(),
           prefix,
           accounts
-        ))
-      )
+        ),
+        "arn:aws:ssm:%s:%s:parameter/funds/*".formatted(
+          Stack.of(this).getRegion(),
+          Stack.of(this).getAccount()
+        )
+      ))
       .build();
 
-    PolicyStatement writeAndReadStatusesPolicy = PolicyStatement.Builder.create()
+    PolicyStatement writeStatusesPolicy = PolicyStatement.Builder.create()
       .actions(List.of("ssm:PutParameter"))
       .resources(
-        Stream.of(
+        StreamEx.of(
             "arn:aws:ssm:%s:%s:parameter/%s/%s",
             "arn:aws:ssm:%s:%s:parameter/%s/%s/",
             "arn:aws:ssm:%s:%s:parameter/%s/%s/*"
@@ -158,22 +164,42 @@ public class BankAccountsTrackStack extends Stack {
             prefix,
             statuses
           ))
+          .append("arn:aws:ssm:%s:%s:parameter/funds/*".formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
           .toList())
       .build();
 
     lambda.getRole().attachInlinePolicy(
       new Policy(this, id + "ParameterStorePolicy", PolicyProps.builder()
-        .statements(Arrays.asList(readPolicy, readPolicy2, writeAndReadStatusesPolicy))
+        .statements(Arrays.asList(readPolicy, readPolicy2, writeStatusesPolicy))
         .build())
     );
   }
 
   private void createRunSchedule(final Alias lambdaAlias) {
-    final var everyFiveMinutesRule = Rule.Builder.create(this, "BankStatusUpdaterRule")
+    final var fullUpdaterRule = Rule.Builder.create(this, "BankStatusFullUpdaterRule")
+      .schedule(Schedule.rate(Duration.minutes(25)))
+      .build();
+
+    final var targetFull = LambdaFunction.Builder.create(lambdaAlias)
+      .retryAttempts(0)
+      .event(RuleTargetInput.fromObject(Map.of("check", "FULL")))
+      .build();
+
+    fullUpdaterRule.addTarget(targetFull);
+
+    final var currentUpdaterRule = Rule.Builder.create(this, "BankStatusCurrentUpdaterRule")
       .schedule(Schedule.rate(Duration.minutes(10)))
       .build();
 
-    everyFiveMinutesRule.addTarget(new LambdaFunction(lambdaAlias));
+    final var targetCurrent = LambdaFunction.Builder.create(lambdaAlias)
+      .retryAttempts(0)
+      .event(RuleTargetInput.fromObject(Map.of("check", "CURRENT")))
+      .build();
+
+    currentUpdaterRule.addTarget(targetCurrent);
   }
 
   private Alias createVersionAndUpdateAlias(final Function lambda, final String id) {
@@ -184,7 +210,7 @@ public class BankAccountsTrackStack extends Stack {
       .build();
   }
 
-  private Alias createBankStatusUpdaterLambda() {
+  private void createBankStatusUpdaterLambda() {
     final var lambda = Function.Builder.create(this, "BankStatusUpdater")
       .runtime(Runtime.JAVA_17)
       .code(Code.fromAsset("../lambda-bank-status-updater/build/function.zip"))
@@ -197,7 +223,9 @@ public class BankAccountsTrackStack extends Stack {
 
     addSsmReadPermissionsForBankStatusUpdaterLambda(lambda, "BankStatusUpdater");
 
-    return createVersionAndUpdateAlias(lambda, "BankStatusUpdater");
+    final Alias bankStatusUpdaterAlias = createVersionAndUpdateAlias(lambda, "BankStatusUpdater");
+
+    createRunSchedule(bankStatusUpdaterAlias);
   }
 
   private Alias createTelegramBotLambda() {

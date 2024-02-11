@@ -1,4 +1,4 @@
-package com.yuriytkach.status.api;
+package com.yuriytkach.batb.common;
 
 import java.time.Instant;
 

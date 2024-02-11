@@ -34,12 +34,34 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
   private final Clock clock;
 
   @Override
-  public void updateAccountStatuses(final Map<String, BankAccountStatus> oldAccountStatuses) {
+  public BankType bankType() {
+    return BANK_TYPE;
+  }
+
+  @Override
+  public void updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
     MDC.put("bankType", BANK_TYPE.name());
-    log.info("Updating account statuses for Monobank");
 
-    final Set<BankAccount> accounts = readBankAccounts();
+    final Set<BankAccount> configuredAccounts = readBankAccounts();
+    log.info("Updating all account statuses for Monobank: {}", configuredAccounts.size());
 
+    updateAccounts(previousStatuses, configuredAccounts);
+  }
+
+  @Override
+  public Set<BankAccountStatus> updateSpecifiedAccountStatuses(final Map<String, BankAccountStatus> specificStatuses) {
+    final Set<BankAccount> accountsToUpdate = StreamEx.of(specificStatuses.values())
+      .map(status -> new BankAccount(status.accountId(), status.accountName()))
+      .toImmutableSet();
+
+    log.info("Updating account statuses for Monobank: {}", accountsToUpdate);
+    return updateAccounts(specificStatuses, accountsToUpdate);
+  }
+
+  private Set<BankAccountStatus> updateAccounts(
+    final Map<String, BankAccountStatus> previousStatuses,
+    final Set<BankAccount> accounts
+  ) {
     final var retrievedAccountStatuses = StreamEx.of(accounts)
       .mapToEntry(account -> monoService.readJarStatus(account.id()))
       .flatMapValues(Optional::stream)
@@ -48,10 +70,12 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
       .toImmutableSet();
     log.info("Total bank account statuses retrieved: {}", retrievedAccountStatuses.size());
 
-    final var updatedAccountStatuses = findUpdatedStatuses(oldAccountStatuses, retrievedAccountStatuses);
+    final var updatedAccountStatuses = findUpdatedStatuses(previousStatuses, retrievedAccountStatuses);
     log.info("Total bank account statuses updated: {}", updatedAccountStatuses.size());
 
     accountBalanceStorage.saveAll(updatedAccountStatuses);
+
+    return previousStatusesWithUpdated(previousStatuses, updatedAccountStatuses);
   }
 
   private Set<BankAccount> readBankAccounts() {

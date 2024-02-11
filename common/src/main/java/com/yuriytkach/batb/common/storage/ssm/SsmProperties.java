@@ -20,4 +20,7 @@ public interface SsmProperties {
 
   @WithDefault("/funds/")
   String funds();
+
+  @WithDefault("current")
+  String currentFundProp();
 }

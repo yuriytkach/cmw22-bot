@@ -24,6 +24,26 @@ public class SsmFundInfoStorage implements FundInfoStorage {
   private final ObjectMapper objectMapper;
 
   @Override
+  public Optional<FundInfo> getCurrent() {
+    final String path = ssmProperties.funds() + ssmProperties.currentFundProp();
+    log.info("Reading current fund name from SSM path: {}", path);
+    final var request = GetParameterRequest.builder()
+      .name(path)
+      .build();
+    try {
+      final GetParameterResponse response = ssm.getParameter(request);
+      return Optional.ofNullable(response.parameter().value())
+        .flatMap(this::getById);
+    } catch (final ParameterNotFoundException ex) {
+      log.info("SSM Parameter not found: {}", path);
+      return Optional.empty();
+    } catch (final Exception ex) {
+      log.error("Error reading param {}: {}", path, ex.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  @Override
   public Optional<FundInfo> getById(final String fundraiserId) {
     final String path = ssmProperties.funds() + fundraiserId;
     log.info("Reading fund info from SSM path: {}", path);
@@ -38,7 +58,7 @@ public class SsmFundInfoStorage implements FundInfoStorage {
       log.info("SSM Parameter not found: {}", path);
       return Optional.empty();
     } catch (final Exception ex) {
-      log.error("Error reading secret {}: {}", path, ex.getMessage());
+      log.error("Error reading param {}: {}", path, ex.getMessage());
       return Optional.empty();
     }
   }
