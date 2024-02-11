@@ -1,6 +1,5 @@
 package com.yuriytkach.batb.cdk;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -173,7 +172,7 @@ public class BankAccountsTrackStack extends Stack {
 
     lambda.getRole().attachInlinePolicy(
       new Policy(this, id + "ParameterStorePolicy", PolicyProps.builder()
-        .statements(Arrays.asList(readPolicy, readPolicy2, writeStatusesPolicy))
+        .statements(List.of(readPolicy, readPolicy2, writeStatusesPolicy))
         .build())
     );
   }
@@ -273,7 +272,7 @@ public class BankAccountsTrackStack extends Stack {
 
     lambda.getRole().attachInlinePolicy(
       new Policy(this, "BankTelegramBot" + "ParameterStorePolicy", PolicyProps.builder()
-        .statements(Arrays.asList(readSecretPolicy, writeAndReadStatusesPolicy))
+        .statements(List.of(readSecretPolicy, writeAndReadStatusesPolicy))
         .build())
     );
 
@@ -314,19 +313,6 @@ public class BankAccountsTrackStack extends Stack {
       .actions(List.of("ssm:GetParameter"))
       .resources(
         Stream.of(
-            "arn:aws:ssm:%s:%s:parameter/funds/*",
-            "arn:aws:ssm:%s:%s:parameter/batb/statuses/*"
-          ).map(pattern -> pattern.formatted(
-            Stack.of(this).getRegion(),
-            Stack.of(this).getAccount()
-          ))
-          .toList())
-      .build();
-
-    PolicyStatement writeAndReadStatusesPolicy = PolicyStatement.Builder.create()
-      .actions(List.of("ssm:PutParameter"))
-      .resources(
-        Stream.of(
             "arn:aws:ssm:%s:%s:parameter/funds/*"
           ).map(pattern -> pattern.formatted(
             Stack.of(this).getRegion(),
@@ -337,7 +323,7 @@ public class BankAccountsTrackStack extends Stack {
 
     lambda.getRole().attachInlinePolicy(
       new Policy(this, "StatusApiLambda" + "ParameterStorePolicy", PolicyProps.builder()
-        .statements(Arrays.asList(readPolicy, writeAndReadStatusesPolicy))
+        .statements(List.of(readPolicy))
         .build())
     );
 

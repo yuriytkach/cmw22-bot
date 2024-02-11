@@ -2,7 +2,7 @@ quarkus:
   cache:
     caffeine:
       "fund-status":
-        expire-after-write: 120s
+        expire-after-write: 60s
   log:
     level: INFO
     min-level: DEBUG
