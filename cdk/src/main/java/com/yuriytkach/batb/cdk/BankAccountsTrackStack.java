@@ -35,6 +35,7 @@ import software.amazon.awscdk.services.lambda.Alias;
 import software.amazon.awscdk.services.lambda.Code;
 import software.amazon.awscdk.services.lambda.Function;
 import software.amazon.awscdk.services.lambda.Runtime;
+import software.amazon.awscdk.services.lambda.SnapStartConf;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.RetentionDays;
 import software.constructs.Construct;
@@ -191,6 +192,7 @@ public class BankAccountsTrackStack extends Stack {
       .logRetention(RetentionDays.ONE_DAY)
       .memorySize(256)
       .timeout(Duration.minutes(10))
+      .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
       .build();
 
     addSsmReadPermissionsForBankStatusUpdaterLambda(lambda, "BankStatusUpdater");
@@ -208,6 +210,7 @@ public class BankAccountsTrackStack extends Stack {
       .memorySize(256)
 //      .memorySize(128)
       .timeout(Duration.seconds(25))
+      .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
       .build();
 
     final String secretParamKey = "/bot/telegram/chat";
