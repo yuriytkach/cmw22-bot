@@ -1,5 +1,7 @@
 package com.yuriytkach.batb.bsu.bank.gsheet;
 
+import static com.yuriytkach.batb.common.Currency.UAH;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.NumberFormat;
@@ -62,27 +64,31 @@ public class GSheetService {
 
       final String sheetName = account.properties().get("sheetName");
 
-      final Optional<String> raised = readValue(sheets, account.id(), sheetName,
+      final Optional<String> raisedStr = readValue(sheets, account.id(), sheetName,
         account.properties().get("raisedCell"));
-      final Optional<String> raisedUah = readValue(sheets, account.id(), sheetName,
+      final Optional<String> raisedStrUah = readValue(sheets, account.id(), sheetName,
         account.properties().get("raisedUahCell"));
 
-      final Optional<String> spent = readValue(sheets, account.id(), sheetName,
+      final Optional<String> spentStr = readValue(sheets, account.id(), sheetName,
         account.properties().get("spentCell"));
-      final Optional<String> spentUah = readValue(sheets, account.id(), sheetName,
+      final Optional<String> spentStrUah = readValue(sheets, account.id(), sheetName,
         account.properties().get("spentUahCell"));
 
       final Optional<String> currStr = readValue(
         sheets, account.id(), sheetName, account.properties().get("currencyCell")
       );
 
+      final Currency currency = currStr.flatMap(Currency::fromString).orElse(UAH);
+      final Long raised = raisedStr.map(this::parseLong).orElse(0L);
+      final Long spent = spentStr.map(this::parseLong).orElse(0L);
+
       final var result = GSheetData.builder()
         .sheetId(account.id())
-        .raised(raised.map(this::parseLong).orElse(0L))
-        .raisedUah(raisedUah.map(this::parseLong).orElse(0L))
-        .spent(spent.map(this::parseLong).orElse(0L))
-        .spentUah(spentUah.map(this::parseLong).orElse(0L))
-        .currency(currStr.flatMap(Currency::fromString).orElse(Currency.UAH))
+        .raised(raised)
+        .raisedUah(raisedStrUah.map(this::parseLong).orElse(currency == UAH ? raised : 0))
+        .spent(spent)
+        .spentUah(spentStrUah.map(this::parseLong).orElse(currency == UAH ? spent : 0))
+        .currency(currency)
         .build();
       log.debug("Read account status: {}", result);
 

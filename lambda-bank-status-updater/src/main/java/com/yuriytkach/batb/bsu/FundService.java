@@ -22,7 +22,9 @@ public class FundService {
   FundInfoStorage fundInfoStorage;
 
   public void updateCurrentFundraiser(final FundInfo fundInfo, final List<BankAccountStatus> statuses) {
-    log.debug("Update current fundraiser {} with statuses: {}", fundInfo.id(), statuses.size());
+    log.info("Update current fundraiser `{}` with statuses: {}", fundInfo.id(), statuses.size());
+    log.debug("Bank statuses: {}", statuses);
+
     final FundStatus fundStatus = calculateFundAmounts(fundInfo, statuses);
 
     if (fundStatus.hasUpdates()) {
@@ -53,13 +55,11 @@ public class FundService {
     log.info("Max updated at: {}", maxUpdatedAt);
 
     final long raised = StreamEx.of(statuses)
-      .filter(status -> status.amount() > 0)
       .mapToLong(BankAccountStatus::amountUah)
       .sum();
 
     final long spent = StreamEx.of(statuses)
-      .filter(status -> status.amount() < 0)
-      .mapToLong(BankAccountStatus::amountUah)
+      .mapToLong(status -> status.spentAmountUah() == null ? 0L : status.spentAmountUah())
       .sum();
 
     final long totalRaised = raised + Math.abs(spent);
