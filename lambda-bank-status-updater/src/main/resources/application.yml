@@ -17,3 +17,9 @@ quarkus:
     category:
       "com.yuriytkach":
         level: DEBUG
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        darken: 1

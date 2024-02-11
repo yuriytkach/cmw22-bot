@@ -54,7 +54,7 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
   @Override
   public Set<BankAccountStatus> updateSpecifiedAccountStatuses(final Map<String, BankAccountStatus> specificStatuses) {
     final Map<String, BankAccount> accountsToUpdate = StreamEx.of(specificStatuses.values())
-      .map(status -> new BankAccount(status.accountId(), status.accountName()))
+      .map(status -> new BankAccount(status.accountId(), status.accountName(), Map.of()))
       .toMap(BankAccount::id, Function.identity());
 
     log.info("Updating account statuses for PrivatBank: {}", accountsToUpdate.keySet());

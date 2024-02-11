@@ -8,6 +8,7 @@ import com.yuriytkach.batb.common.StatusUpdateRequest;
 
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -21,6 +22,7 @@ public class BankStatusUpdaterLambda implements RequestHandler<StatusUpdateReque
   AllAccountsUpdater allAccountsUpdater;
 
   @Override
+  @SneakyThrows
   public Void handleRequest(final StatusUpdateRequest input, final Context context) {
     MDC.put("awsRequestId", context.getAwsRequestId());
     log.info("Bank Status Updater for Input {}. AWS Request ID: {}", input, context.getAwsRequestId());

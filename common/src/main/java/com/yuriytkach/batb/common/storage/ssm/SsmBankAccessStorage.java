@@ -35,7 +35,6 @@ public class SsmBankAccessStorage implements BankAccessStorage {
     log.info("Getting accounts from SSM path: {}", path);
 
     final var request = GetParameterRequest.builder()
-      .withDecryption(true)
       .name(path)
       .build();
 

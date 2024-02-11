@@ -2,6 +2,8 @@ package com.yuriytkach.batb.common;
 
 import java.time.Instant;
 
+import javax.annotation.Nullable;
+
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Builder;
 
@@ -14,6 +16,12 @@ public record BankAccountStatus (
   long amount,
 
   long amountUah,
+
+  @Nullable
+  Long spentAmount,
+
+  @Nullable
+  Long spentAmountUah,
 
   Currency currency,
   Instant updatedAt,

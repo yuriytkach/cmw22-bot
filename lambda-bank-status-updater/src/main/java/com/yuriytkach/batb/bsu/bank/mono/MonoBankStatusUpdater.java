@@ -51,7 +51,7 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
   @Override
   public Set<BankAccountStatus> updateSpecifiedAccountStatuses(final Map<String, BankAccountStatus> specificStatuses) {
     final Set<BankAccount> accountsToUpdate = StreamEx.of(specificStatuses.values())
-      .map(status -> new BankAccount(status.accountId(), status.accountName()))
+      .map(status -> new BankAccount(status.accountId(), status.accountName(), Map.of()))
       .toImmutableSet();
 
     log.info("Updating account statuses for Monobank: {}", accountsToUpdate);
