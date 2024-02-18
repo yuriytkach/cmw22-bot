@@ -144,14 +144,20 @@ public class GSheetService {
     log.info("Updating registry totals for accounts: {}", allAccountBalances.size());
 
     final String sheetName = registryConfig.properties().get("sheetName");
+    final String colAccount = registryConfig.properties().get("accountCol");
     final String colAmountUah = registryConfig.properties().get("amountUahCol");
     final String colAmount = registryConfig.properties().get("amountCol");
     final String colCurr = registryConfig.properties().get("currCol");
     final String colUpdatedAt = registryConfig.properties().get("updatedAtCol");
+    final String colHumanName = registryConfig.properties().get("humanNameCol");
 
     final var allRangesToUpdate = StreamEx.of(allAccountBalances)
       .filter(acc -> acc.gsheetStatRow() != null)
       .flatMap(acc -> {
+        final var accIdValueRange = buildValueRange(
+          sheetName, colAccount, acc.gsheetStatRow(), acc.accountId()
+        );
+
         final var amountUahValueRange = buildValueRange(
           sheetName, colAmountUah, acc.gsheetStatRow(), acc.amountUah() / 100.0
         );
@@ -168,7 +174,15 @@ public class GSheetService {
           sheetName, colUpdatedAt, acc.gsheetStatRow(), acc.updatedAt().toString()
         );
 
-        return Stream.of(amountUahValueRange, amountValueRange, currValueRange, updatedAtValueRange);
+        final var humanNameValueRange = buildValueRange(
+          sheetName, colHumanName, acc.gsheetStatRow(), acc.accountName()
+        );
+
+        return Stream.of(
+          accIdValueRange,
+          amountUahValueRange, amountValueRange, currValueRange,
+          updatedAtValueRange, humanNameValueRange
+        );
       })
       .toList();
 
