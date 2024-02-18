@@ -9,4 +9,9 @@ import lombok.Builder;
 
 @Builder
 @RegisterForReflection
-public record BankAccount(String id, String name, @Nullable Map<String, String> properties) { }
+public record BankAccount(
+  String id,
+  String name,
+  @Nullable Map<String, String> properties,
+  @Nullable String gsheetStatRow
+) { }

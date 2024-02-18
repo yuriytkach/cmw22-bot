@@ -5,17 +5,21 @@ import static com.yuriytkach.batb.common.Currency.UAH;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.NumberFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.sheets.v4.Sheets;
+import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.yuriytkach.batb.common.BankAccount;
+import com.yuriytkach.batb.common.BankAccountStatus;
 import com.yuriytkach.batb.common.Currency;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
@@ -23,6 +27,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import lombok.Builder;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import one.util.streamex.StreamEx;
 
 @Slf4j
 @ApplicationScoped
@@ -129,6 +134,73 @@ public class GSheetService {
     } else {
       return Optional.ofNullable(values.get(0).get(0)).map(String.class::cast);
     }
+  }
+
+  public void updateRegistryTotals(
+    final Collection<BankAccountStatus> allAccountBalances,
+    final BankAccount registryConfig,
+    final Sheets sheets
+  ) {
+    log.info("Updating registry totals for accounts: {}", allAccountBalances.size());
+
+    final String sheetName = registryConfig.properties().get("sheetName");
+    final String colAmountUah = registryConfig.properties().get("amountUahCol");
+    final String colAmount = registryConfig.properties().get("amountCol");
+    final String colCurr = registryConfig.properties().get("currCol");
+    final String colUpdatedAt = registryConfig.properties().get("updatedAtCol");
+
+    final var allRangesToUpdate = StreamEx.of(allAccountBalances)
+      .filter(acc -> acc.gsheetStatRow() != null)
+      .flatMap(acc -> {
+        final var amountUahValueRange = buildValueRange(
+          sheetName, colAmountUah, acc.gsheetStatRow(), acc.amountUah() / 100.0
+        );
+
+        final var amountValueRange = buildValueRange(
+          sheetName, colAmount, acc.gsheetStatRow(), acc.amount() / 100.0
+        );
+
+        final var currValueRange = buildValueRange(
+          sheetName, colCurr, acc.gsheetStatRow(), acc.currency().toString()
+        );
+
+        final var updatedAtValueRange = buildValueRange(
+          sheetName, colUpdatedAt, acc.gsheetStatRow(), acc.updatedAt().toString()
+        );
+
+        return Stream.of(amountUahValueRange, amountValueRange, currValueRange, updatedAtValueRange);
+      })
+      .toList();
+
+    if (allRangesToUpdate.isEmpty()) {
+      log.warn("No data to update in Registry of Google Sheets");
+    } else {
+      log.info("Updating registry totals in Google Sheets: {}", allRangesToUpdate.size());
+
+      final var batchRequest = new BatchUpdateValuesRequest();
+      batchRequest.setData(allRangesToUpdate);
+      batchRequest.setValueInputOption("RAW");
+
+      try {
+        sheets.spreadsheets().values()
+          .batchUpdate(registryConfig.id(), batchRequest)
+          .execute();
+      } catch (final IOException ex) {
+        log.error("Failed to update registry totals in Google Sheets: {}", ex.getMessage(), ex);
+      }
+    }
+  }
+
+  private ValueRange buildValueRange(
+    final String sheetName,
+    final String col,
+    final String row,
+    final Object value
+  ) {
+    final var amountUahValueRange = new ValueRange();
+    amountUahValueRange.setRange("%s!%s%s".formatted(sheetName, col, row));
+    amountUahValueRange.setValues(List.of(List.of(value)));
+    return amountUahValueRange;
   }
 
   @Builder

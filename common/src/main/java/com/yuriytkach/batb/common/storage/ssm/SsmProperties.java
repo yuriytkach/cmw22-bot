@@ -23,4 +23,7 @@ public interface SsmProperties {
 
   @WithDefault("current")
   String currentFundProp();
+
+  @WithDefault("gsheet/registry")
+  String registryGsheet();
 }

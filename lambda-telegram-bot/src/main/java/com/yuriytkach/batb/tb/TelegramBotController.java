@@ -7,6 +7,7 @@ import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import com.yuriytkach.batb.common.secret.SecretsReader;
+import com.yuriytkach.batb.tb.api.SendMessageFromHook;
 import com.yuriytkach.batb.tb.config.AppProperties;
 
 import jakarta.ws.rs.POST;
@@ -38,12 +39,18 @@ public class TelegramBotController {
     log.info("Telegram Book Hook. AWS Request ID: {}", context.getAwsRequestId());
 
     try {
-      if (isValidChatId(body.getMessage().getChat())) {
-        log.info("Chat ID is valid");
-        final var response = telegramBotService.processUpdate(body.getMessage());
-        return response.map(Response::ok).orElseGet(Response::ok).build();
+      if (body.getMessage() != null) {
+        if (isValidChatId(body.getMessage().getChat())) {
+          log.info("Chat ID is valid");
+          final var response = telegramBotService.processUpdate(body.getMessage());
+          return response.map(Response::ok).orElseGet(Response::ok).build();
+        } else {
+          log.info("Chat ID is invalid: {}", body.getMessage().getChat().getId());
+          return Response.ok(createDefaultResponse(body)).build();
+        }
       } else {
-        log.info("Chat ID is invalid: {}", body.getMessage().getChat().getId());
+        log.info("Unsupported update: {}", body);
+        return Response.ok().build();
       }
     } catch (final Exception ex) {
       log.error("Error while processing update: {}", ex.getMessage());
@@ -51,6 +58,13 @@ public class TelegramBotController {
     }
 
     return Response.ok().build();
+  }
+
+  private Object createDefaultResponse(final Update body) {
+    final SendMessageFromHook response = new SendMessageFromHook();
+    response.setChatId(body.getMessage().getChatId());
+    response.setText("Слава Україні! 🇺🇦");
+    return response;
   }
 
   private boolean isValidChatId(final Chat chat) {

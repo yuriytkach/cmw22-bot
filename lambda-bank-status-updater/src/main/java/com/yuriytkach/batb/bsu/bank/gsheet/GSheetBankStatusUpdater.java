@@ -44,12 +44,12 @@ public class GSheetBankStatusUpdater implements BankStatusUpdater {
   }
 
   @Override
-  public void updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
+  public Set<BankAccountStatus> updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
     MDC.put("bankType", BANK_TYPE.name());
     final var configuredAccounts = readBankAccounts();
     log.info("Updating all account statuses for Gsheet: {}", configuredAccounts.size());
 
-    updateAccountStatuses(previousStatuses, configuredAccounts);
+    return updateAccountStatuses(previousStatuses, configuredAccounts);
   }
 
   @Override

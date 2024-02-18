@@ -43,18 +43,18 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
   }
 
   @Override
-  public void updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
+  public Set<BankAccountStatus> updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
     MDC.put("bankType", BANK_TYPE.name());
     final Map<String, BankAccount> configuredAccounts = readBankAccounts();
     log.info("Updating all account statuses for PrivatBank: {}", configuredAccounts.size());
 
-    updateAccountStatuses(previousStatuses, configuredAccounts);
+    return updateAccountStatuses(previousStatuses, configuredAccounts);
   }
 
   @Override
   public Set<BankAccountStatus> updateSpecifiedAccountStatuses(final Map<String, BankAccountStatus> specificStatuses) {
     final Map<String, BankAccount> accountsToUpdate = StreamEx.of(specificStatuses.values())
-      .map(status -> new BankAccount(status.accountId(), status.accountName(), Map.of()))
+      .map(status -> new BankAccount(status.accountId(), status.accountName(), Map.of(), status.gsheetStatRow()))
       .toMap(BankAccount::id, Function.identity());
 
     log.info("Updating account statuses for PrivatBank: {}", accountsToUpdate.keySet());
@@ -105,6 +105,7 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
       .amountUah(privatBalanceAmountParser.parseAmount(balance.balanceOutEq()))
       .currency(currency)
       .updatedAt(clock.instant())
+      .gsheetStatRow(bankAccount.gsheetStatRow())
       .build()
     );
   }

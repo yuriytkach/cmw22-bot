@@ -1,8 +1,11 @@
 package com.yuriytkach.batb.bsu;
 
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import com.yuriytkach.batb.bsu.bank.BankStatusUpdater;
+import com.yuriytkach.batb.bsu.bank.gsheet.GSheetAllAccountsSyncService;
 import com.yuriytkach.batb.common.BankAccountStatus;
 import com.yuriytkach.batb.common.storage.AccountBalanceStorage;
 
@@ -22,14 +25,30 @@ public class AllAccountsUpdater {
   @Inject
   AccountBalanceStorage accountBalanceStorage;
 
+  @Inject
+  GSheetAllAccountsSyncService gSheetAllAccountsSyncService;
+
   public void update() {
-    final var accountStatuses = StreamEx.of(accountBalanceStorage.getAll())
-      .mapToEntry(BankAccountStatus::accountId, Function.identity())
-      .toImmutableMap();
+    final var accountStatuses = accountBalanceStorage.getAll();
     log.debug("Loaded account statuses: {}", accountStatuses.size());
 
     log.info("Updating bank statuses with updaters: {}", updaters.stream().count());
 
-    updaters.stream().forEach(updated -> updated.updateAllAccountStatuses(accountStatuses));
+    final var allAccountBalances = updaters.stream()
+      .flatMap(updater -> updateStatusesForUpdater(updater, accountStatuses))
+      .toList();
+
+    gSheetAllAccountsSyncService.updateAllAccountsTotals(allAccountBalances);
+  }
+
+  private Stream<BankAccountStatus> updateStatusesForUpdater(
+    final BankStatusUpdater updater,
+    final Set<BankAccountStatus> accountStatuses
+  ) {
+    final var prevAccountStatuses = StreamEx.of(accountStatuses)
+      .filter(acc -> acc.bankType() == updater.bankType())
+      .mapToEntry(BankAccountStatus::accountId, Function.identity())
+      .toImmutableMap();
+    return updater.updateAllAccountStatuses(prevAccountStatuses).stream();
   }
 }

@@ -39,19 +39,19 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
   }
 
   @Override
-  public void updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
+  public Set<BankAccountStatus> updateAllAccountStatuses(final Map<String, BankAccountStatus> previousStatuses) {
     MDC.put("bankType", BANK_TYPE.name());
 
     final Set<BankAccount> configuredAccounts = readBankAccounts();
     log.info("Updating all account statuses for Monobank: {}", configuredAccounts.size());
 
-    updateAccounts(previousStatuses, configuredAccounts);
+    return updateAccounts(previousStatuses, configuredAccounts);
   }
 
   @Override
   public Set<BankAccountStatus> updateSpecifiedAccountStatuses(final Map<String, BankAccountStatus> specificStatuses) {
     final Set<BankAccount> accountsToUpdate = StreamEx.of(specificStatuses.values())
-      .map(status -> new BankAccount(status.accountId(), status.accountName(), Map.of()))
+      .map(status -> new BankAccount(status.accountId(), status.accountName(), Map.of(), status.gsheetStatRow()))
       .toImmutableSet();
 
     log.info("Updating account statuses for Monobank: {}", accountsToUpdate);
@@ -97,6 +97,7 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
       .amountUah(monoJar.amount())
       .currency(currency)
       .updatedAt(clock.instant())
+      .gsheetStatRow(bankAccount.gsheetStatRow())
       .build()
     );
   }

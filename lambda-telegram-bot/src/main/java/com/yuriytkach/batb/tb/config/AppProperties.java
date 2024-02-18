@@ -7,5 +7,7 @@ public interface AppProperties {
 
   String chatIdSecretKey();
 
+  String botToken();
+
   String botName();
 }

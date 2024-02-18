@@ -143,6 +143,12 @@ public class BankAccountsTrackStack extends Stack {
           prefix,
           accounts
         ),
+        "arn:aws:ssm:%s:%s:parameter/%s/gsheet/%s".formatted(
+          Stack.of(this).getRegion(),
+          Stack.of(this).getAccount(),
+          prefix,
+          "registry"
+        ),
         "arn:aws:ssm:%s:%s:parameter/funds/*".formatted(
           Stack.of(this).getRegion(),
           Stack.of(this).getAccount()

@@ -14,6 +14,8 @@ import com.yuriytkach.batb.common.storage.AccountBalanceStorage;
 import com.yuriytkach.batb.tb.api.SendMessageFromHook;
 import com.yuriytkach.batb.tb.config.AppProperties;
 import com.yuriytkach.batb.tb.config.CommandsProperties;
+import com.yuriytkach.batb.tb.model.TgReaction;
+import com.yuriytkach.batb.tb.model.TgReactionResponse;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
@@ -55,10 +57,28 @@ class TelegramBotService {
       }
       log.info("Sending response: {}", response);
       return Optional.of(response);
+    } else if (isMsgForLike(message)) {
+      return Optional.of(
+        TgReactionResponse.builder()
+          .chatId(message.getChatId())
+          .messageId(message.getMessageId())
+          .isBig(true)
+          .react(TgReaction.thumbsUp())
+          .build()
+      );
     } else {
       log.info("Message is not for me: {}", message.getMessageId());
+      log.debug("Message: {}", message);
       return Optional.empty();
     }
+  }
+
+  private boolean isMsgForLike(final Message message) {
+    if (message.getForwardFrom() != null && "PrivatBank_help_bot".equals(message.getForwardFrom().getUserName())) {
+      log.debug("Message from PrivatBank_help_bot: {}", message.getMessageId());
+      return true;
+    }
+    return false;
   }
 
   private String createAccountBalancesText(final Set<BankAccountStatus> accountBalances) {

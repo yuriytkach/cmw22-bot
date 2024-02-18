@@ -21,6 +21,7 @@ public class SsmSecretsReader implements SecretsReader {
   @Override
   @CacheResult(cacheName = "ssm-secrets")
   public Optional<String> readSecret(final String secretName) {
+    log.debug("Reading secret: {}", secretName);
     final var request = GetParameterRequest.builder()
       .name(secretName)
       .withDecryption(true)

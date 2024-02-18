@@ -15,7 +15,7 @@ public interface BankStatusUpdater {
 
   BankType bankType();
 
-  void updateAllAccountStatuses(Map<String, BankAccountStatus> previousStatuses);
+  Set<BankAccountStatus> updateAllAccountStatuses(Map<String, BankAccountStatus> previousStatuses);
 
   Set<BankAccountStatus> updateSpecifiedAccountStatuses(Map<String, BankAccountStatus> specificStatuses);
 

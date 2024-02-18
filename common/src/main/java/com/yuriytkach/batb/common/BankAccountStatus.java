@@ -7,7 +7,7 @@ import javax.annotation.Nullable;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Builder;
 
-@Builder
+@Builder(toBuilder = true)
 @RegisterForReflection
 public record BankAccountStatus (
   BankType bankType,
@@ -26,7 +26,10 @@ public record BankAccountStatus (
   Currency currency,
   Instant updatedAt,
 
-  Boolean ignoreForTotal
+  Boolean ignoreForTotal,
+
+  @Nullable
+  String gsheetStatRow
 ) {
 
   public String shortAccountId() {

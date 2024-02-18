@@ -1,12 +1,14 @@
 package com.yuriytkach.batb.common.storage.ssm;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.BankAccount;
 import com.yuriytkach.batb.common.BankType;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 
+import io.quarkus.cache.CacheResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.ssm.SsmClient;
@@ -24,6 +26,7 @@ public class SsmBankAccessStorage implements BankAccessStorage {
   private final ObjectMapper objectMapper;
 
   @Override
+  @CacheResult(cacheName = "ssm-tokens")
   public List<String> getListOfTokens(final BankType bankType) {
     final String path = ssmProperties.prefix() + bankType.name().toLowerCase() + ssmProperties.tokens();
     return readParamsByPath(path, "tokens");
@@ -46,6 +49,26 @@ public class SsmBankAccessStorage implements BankAccessStorage {
     } catch (final Exception ex) {
       log.error("Cannot read ssm parameter by path `{}`: {}", path, ex.getMessage());
       return List.of();
+    }
+  }
+
+  @Override
+  @CacheResult(cacheName = "ssm-registry-config")
+  public Optional<BankAccount> getRegistryConfig() {
+    final String path = ssmProperties.prefix() + ssmProperties.registryGsheet();
+    log.info("Getting registry config from SSM path: {}", path);
+
+    final var request = GetParameterRequest.builder()
+      .name(path)
+      .build();
+
+    try {
+      final var response = ssmClient.getParameter(request);
+      final var valueJson = response.parameter().value();
+      return Optional.ofNullable(objectMapper.readValue(valueJson, BankAccount.class));
+    } catch (final Exception ex) {
+      log.error("Cannot read ssm parameter by path `{}`: {}", path, ex.getMessage());
+      return Optional.empty();
     }
   }
 
