@@ -10,5 +10,5 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-jackson'
     implementation 'io.quarkus:quarkus-amazon-lambda'
 
-    implementation 'org.telegram:telegrambots-meta:6.9.0'
+    implementation 'org.telegram:telegrambots-meta:6.9.7.1'
 }

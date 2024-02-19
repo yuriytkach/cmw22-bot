@@ -3,11 +3,11 @@ package com.yuriytkach.batb.tb;
 import java.util.Arrays;
 
 import org.slf4j.MDC;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import com.yuriytkach.batb.common.secret.SecretsReader;
-import com.yuriytkach.batb.tb.api.SendMessageFromHook;
 import com.yuriytkach.batb.tb.config.AppProperties;
 
 import jakarta.ws.rs.POST;
@@ -61,10 +61,10 @@ public class TelegramBotController {
   }
 
   private Object createDefaultResponse(final Update body) {
-    final SendMessageFromHook response = new SendMessageFromHook();
-    response.setChatId(body.getMessage().getChatId());
-    response.setText("Слава Україні! 🇺🇦");
-    return response;
+    return SendMessage.builder()
+      .chatId(body.getMessage().getChatId())
+      .text("Слава Україні! 🇺🇦")
+      .build();
   }
 
   private boolean isValidChatId(final Chat chat) {

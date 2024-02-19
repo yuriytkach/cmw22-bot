@@ -3,19 +3,21 @@ package com.yuriytkach.batb.tb;
 import static java.util.function.Predicate.not;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.telegram.telegrambots.meta.api.methods.reactions.SetMessageReaction;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.reactions.ReactionType;
+import org.telegram.telegrambots.meta.api.objects.reactions.ReactionTypeEmoji;
 
 import com.yuriytkach.batb.common.BankAccountStatus;
 import com.yuriytkach.batb.common.storage.AccountBalanceStorage;
-import com.yuriytkach.batb.tb.api.SendMessageFromHook;
 import com.yuriytkach.batb.tb.config.AppProperties;
 import com.yuriytkach.batb.tb.config.CommandsProperties;
-import com.yuriytkach.batb.tb.model.TgReaction;
-import com.yuriytkach.batb.tb.model.TgReactionResponse;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
@@ -35,16 +37,16 @@ class TelegramBotService {
   @SneakyThrows
   public Optional<Object> processUpdate(final Message message) {
     if (isMyText(message.getText())) {
-      final SendMessageFromHook response = new SendMessageFromHook();
-      response.setChatId(message.getChatId());
-      //response.setParseMode("MarkdownV2");
-      response.setReplyToMessageId(message.getMessageId());
+      final SendMessage.SendMessageBuilder responseBuilder = SendMessage.builder()
+        .chatId(message.getChatId())
+        .replyToMessageId(message.getMessageId());
+
       if (message.getReplyToMessage() != null) {
-        response.setMessageThreadId(message.getReplyToMessage().getMessageThreadId());
+        responseBuilder.messageThreadId(message.getReplyToMessage().getMessageThreadId());
       }
 
       if (isHelpCommand(message.getText())) {
-        response.setText("""
+        responseBuilder.text("""
           Commands:
           /status - show current account balances
           /help - show this help
@@ -53,17 +55,22 @@ class TelegramBotService {
         final var accountBalances = accountBalanceStorage.getAll();
         final String text = createAccountBalancesText(accountBalances);
         log.info("Response Text: {}", text);
-        response.setText(text);
+        responseBuilder.text(text);
       }
+      final var response = responseBuilder.build();
       log.info("Sending response: {}", response);
       return Optional.of(response);
     } else if (isMsgForLike(message)) {
       return Optional.of(
-        TgReactionResponse.builder()
+        SetMessageReaction.builder()
           .chatId(message.getChatId())
           .messageId(message.getMessageId())
           .isBig(true)
-          .react(TgReaction.thumbsUp())
+          .reactionTypes(List.of(ReactionTypeEmoji.builder()
+            .type(ReactionType.EMOJI_TYPE)
+            .emoji("👍")
+            .build()
+          ))
           .build()
       );
     } else {
