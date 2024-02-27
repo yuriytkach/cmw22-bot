@@ -1,7 +1,7 @@
 plugins {
     id 'java-library'
     id 'io.quarkus'
-    id 'io.freefair.lombok' version '8.4'
+    id 'io.freefair.lombok' version '8.6'
     id 'jacoco'
     id 'org.kordamp.gradle.jandex' version "1.1.0"
 }
