@@ -11,6 +11,7 @@ import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.services.apigateway.AccessLogFormat;
 import software.amazon.awscdk.services.apigateway.AuthorizationType;
+import software.amazon.awscdk.services.apigateway.CorsOptions;
 import software.amazon.awscdk.services.apigateway.DomainName;
 import software.amazon.awscdk.services.apigateway.DomainNameProps;
 import software.amazon.awscdk.services.apigateway.IResource;
@@ -20,6 +21,7 @@ import software.amazon.awscdk.services.apigateway.MethodLoggingLevel;
 import software.amazon.awscdk.services.apigateway.MethodOptions;
 import software.amazon.awscdk.services.apigateway.RequestAuthorizer;
 import software.amazon.awscdk.services.apigateway.Resource;
+import software.amazon.awscdk.services.apigateway.ResourceOptions;
 import software.amazon.awscdk.services.apigateway.RestApi;
 import software.amazon.awscdk.services.apigateway.StageOptions;
 import software.amazon.awscdk.services.certificatemanager.Certificate;
@@ -43,6 +45,8 @@ import software.constructs.Construct;
 
 public class BankAccountsTrackStack extends Stack {
 
+  private static final String CMW22_CORS_ORIGIN = "https://www.cmw22.org";
+
   public BankAccountsTrackStack(final Construct parent, final String id) {
     this(parent, id, null);
   }
@@ -61,7 +65,7 @@ public class BankAccountsTrackStack extends Stack {
     final RequestAuthorizer authorizer = RequestAuthorizer.Builder.create(this, "TelegramAuthorizerBot")
       .handler(lambdaBotAuthorizerAlias)
       .identitySources(List.of("method.request.header.X-Telegram-Bot-Api-Secret-Token"))
-      .resultsCacheTtl(Duration.hours(24))
+      .resultsCacheTtl(Duration.hours(1))
       .build();
 
     final LogGroup apiLogGroup = LogGroup.Builder.create(this, "ApiGatewayLogGroup")
@@ -92,7 +96,15 @@ public class BankAccountsTrackStack extends Stack {
       .build());
 
     final IResource statusResource = restApi.getRoot().addResource("status");
-    final Resource fundraiserResource = statusResource.addResource("{fundraiserId}");
+    final Resource fundraiserResource = statusResource.addResource(
+      "{fundraiserId}",
+      ResourceOptions.builder()
+        .defaultCorsPreflightOptions(CorsOptions.builder()
+          .allowMethods(List.of("GET,HEAD,OPTIONS"))
+          .allowOrigins(List.of(CMW22_CORS_ORIGIN))
+          .build())
+        .build()
+    );
     fundraiserResource.addMethod("GET", new LambdaIntegration(lambdaStatusApiAlias), MethodOptions.builder()
       .build());
   }
@@ -290,7 +302,7 @@ public class BankAccountsTrackStack extends Stack {
       .runtime(Runtime.PROVIDED_AL2023)
       .code(Code.fromAsset("../lambda-bot-authorizer/build/function.zip"))
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
-      .logRetention(RetentionDays.ONE_DAY)
+      .logRetention(RetentionDays.ONE_WEEK)
       .memorySize(128)
       .timeout(Duration.seconds(10))
       .build();
@@ -309,10 +321,14 @@ public class BankAccountsTrackStack extends Stack {
     final var lambda = Function.Builder.create(this, "StatusApiLambda")
       .runtime(Runtime.PROVIDED_AL2023)
       .code(Code.fromAsset("../lambda-status-api/build/function.zip"))
-      .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
-      .logRetention(RetentionDays.ONE_DAY)
+      .handler("not.used")
+      .logRetention(RetentionDays.ONE_WEEK)
       .memorySize(128)
       .timeout(Duration.seconds(10))
+      .environment(Map.of(
+        "DISABLE_SIGNAL_HANDLERS", "true",
+        "QUARKUS_HTTP_CORS_ORIGINS", CMW22_CORS_ORIGIN
+      ))
       .build();
 
     PolicyStatement readPolicy = PolicyStatement.Builder.create()
