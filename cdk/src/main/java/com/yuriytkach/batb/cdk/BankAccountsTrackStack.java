@@ -61,7 +61,7 @@ public class BankAccountsTrackStack extends Stack {
     final RequestAuthorizer authorizer = RequestAuthorizer.Builder.create(this, "TelegramAuthorizerBot")
       .handler(lambdaBotAuthorizerAlias)
       .identitySources(List.of("method.request.header.X-Telegram-Bot-Api-Secret-Token"))
-      .resultsCacheTtl(Duration.hours(1))
+      .resultsCacheTtl(Duration.hours(24))
       .build();
 
     final LogGroup apiLogGroup = LogGroup.Builder.create(this, "ApiGatewayLogGroup")
