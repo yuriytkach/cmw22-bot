@@ -217,11 +217,11 @@ public class BankAccountsTrackStack extends Stack {
 
   private void createBankStatusUpdaterLambda() {
     final var lambda = Function.Builder.create(this, "BankStatusUpdater")
-      .runtime(Runtime.JAVA_17)
+      .runtime(Runtime.JAVA_21)
       .code(Code.fromAsset("../lambda-bank-status-updater/build/function.zip"))
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
-      .logRetention(RetentionDays.ONE_DAY)
-      .memorySize(256)
+      .logRetention(RetentionDays.ONE_WEEK)
+      .memorySize(512)
       .timeout(Duration.minutes(10))
       .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
       .build();
@@ -235,11 +235,11 @@ public class BankAccountsTrackStack extends Stack {
 
   private Alias createTelegramBotLambda() {
     final var lambda = Function.Builder.create(this, "BankTelegramBot")
-      .runtime(Runtime.JAVA_17)
+      .runtime(Runtime.JAVA_21)
 //      .runtime(Runtime.PROVIDED_AL2023)
       .code(Code.fromAsset("../lambda-telegram-bot/build/function.zip"))
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
-      .logRetention(RetentionDays.ONE_DAY)
+      .logRetention(RetentionDays.ONE_WEEK)
       .memorySize(256)
 //      .memorySize(128)
       .timeout(Duration.seconds(25))

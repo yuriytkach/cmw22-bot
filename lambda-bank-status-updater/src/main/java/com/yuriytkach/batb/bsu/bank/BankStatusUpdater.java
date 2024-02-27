@@ -1,6 +1,7 @@
 package com.yuriytkach.batb.bsu.bank;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -26,7 +27,10 @@ public interface BankStatusUpdater {
     return StreamEx.of(retrievedAccountStatuses)
       .flatMap(retrievedAccountStatus -> {
         final var oldAccountStatus = oldAccountStatuses.get(retrievedAccountStatus.accountId());
-        if (oldAccountStatus == null || oldAccountStatus.amount() != retrievedAccountStatus.amount()) {
+        if (oldAccountStatus == null
+          || oldAccountStatus.amount() != retrievedAccountStatus.amount()
+          || !Objects.equals(oldAccountStatus.spentAmount(), retrievedAccountStatus.spentAmount())
+        ) {
           return Stream.of(retrievedAccountStatus);
         } else {
           return Stream.empty();
