@@ -1,4 +1,4 @@
-package com.yuriytkach.status.api;
+package com.yuriytkach.batb.status.api;
 
 import org.slf4j.MDC;
 
@@ -30,21 +30,11 @@ public class FundraiserStatusController {
     MDC.put("awsRequestId", context.getAwsRequestId());
     log.info("Get Fundraiser Status: {} AWS Request ID: {}", fundraiserId, context.getAwsRequestId());
 
-    final var fundInfo = fundService.getFundStatus(fundraiserId);
+    final var fundStatus = fundService.getFundStatus(fundraiserId);
 
-    return fundInfo.map(fund -> {
+    return fundStatus.map(fund -> {
       log.info("Fundraiser status: {}", fund);
-
-      final var fundraiserStatus = FundraiserStatusResponse.builder()
-        .goal(fund.info().goal())
-        .raised(fund.raised() / 100)
-        .spent(fund.spent() / 100)
-        .name(fund.info().name())
-        .description(fund.info().description())
-        .lastUpdatedAt(fund.updatedAt())
-        .build();
-
-      return addCorsHeaders(Response.ok(fundraiserStatus))
+      return addCorsHeaders(Response.ok(fund))
         .cacheControl(createCacheControl())
         .build();
     }).orElseGet(() -> Response.status(Response.Status.NOT_FOUND).build());
@@ -57,10 +47,10 @@ public class FundraiserStatusController {
   }
 
   private Response.ResponseBuilder addCorsHeaders(final Response.ResponseBuilder responseBuilder) {
-    return responseBuilder
-      .header("Access-Control-Allow-Headers", "*")
-      .header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS")
-      .header("Access-Control-Allow-Origin", "*");
+    return responseBuilder;
+//      .header("Access-Control-Allow-Headers", "*")
+//      .header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS")
+//      .header("Access-Control-Allow-Origin", "*");
   }
 
 }

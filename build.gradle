@@ -39,7 +39,6 @@ subprojects {
             testImplementation 'org.mockito:mockito-junit-jupiter'
             testImplementation 'io.rest-assured:rest-assured'
             testImplementation 'org.assertj:assertj-core:3.24.2'
-            testImplementation 'io.quarkus:quarkus-jacoco'
         }
     }
 

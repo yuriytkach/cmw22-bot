@@ -1,7 +1,6 @@
 plugins {
     id 'io.quarkus'
     id 'io.freefair.lombok' version '8.6'
-    id 'jacoco'
 }
 
 dependencies {
@@ -10,3 +9,5 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-jackson'
     implementation 'io.quarkus:quarkus-amazon-lambda'
 }
+
+build.dependsOn(test, quarkusIntTest)

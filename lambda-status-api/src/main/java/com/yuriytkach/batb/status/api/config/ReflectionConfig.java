@@ -1,4 +1,4 @@
-package com.yuriytkach.status.api.config;
+package com.yuriytkach.batb.status.api.config;
 
 import com.yuriytkach.batb.common.BankAccount;
 import com.yuriytkach.batb.common.BankAccountStatus;

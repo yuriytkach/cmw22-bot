@@ -1,4 +1,9 @@
 quarkus:
+  http:
+    cors:
+      ~: true
+      origins: '*'
+      methods: 'GET, HEAD, OPTIONS'
   cache:
     caffeine:
       "fund-status":
