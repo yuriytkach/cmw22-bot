@@ -27,22 +27,30 @@ public class LambdaBotAuthorizer implements RequestHandler<AuthorizerRequest, Po
 
     if (headerValue == null) {
       log.info("Telegram header not found: {}", appProperties.telegramHeader());
-      return responseCreator.createResponse(IamPolicyResponse.DENY, input.methodArn());
+      return deny(input);
     }
 
     final var knownToken = secretsReader.readSecret(appProperties.secretName());
 
     if (knownToken.isEmpty()) {
       log.info("Secret not found: {}", appProperties.secretName());
-      return responseCreator.createResponse(IamPolicyResponse.DENY, input.methodArn());
+      return deny(input);
     }
 
     if (headerValue.equals(knownToken.get())) {
       log.info("Token is valid");
-      return responseCreator.createResponse(IamPolicyResponse.ALLOW, input.methodArn());
+      return allow(input);
     } else {
       log.info("Token is invalid");
-      return responseCreator.createResponse(IamPolicyResponse.DENY, input.methodArn());
+      return deny(input);
     }
+  }
+
+  private PolicyResponse allow(final AuthorizerRequest input) {
+    return responseCreator.createResponse(IamPolicyResponse.ALLOW, input.methodArn());
+  }
+
+  private PolicyResponse deny(final AuthorizerRequest input) {
+    return responseCreator.createResponse(IamPolicyResponse.DENY, input.methodArn());
   }
 }
