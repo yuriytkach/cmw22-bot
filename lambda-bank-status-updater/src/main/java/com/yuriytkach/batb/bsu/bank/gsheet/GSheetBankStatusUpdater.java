@@ -1,7 +1,6 @@
 package com.yuriytkach.batb.bsu.bank.gsheet;
 
 import java.time.Clock;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -28,6 +27,9 @@ public class GSheetBankStatusUpdater implements BankStatusUpdater {
 
   @Inject
   BankAccessStorage bankAccessStorage;
+
+  @Inject
+  SheetsFactory sheetsFactory;
 
   @Inject
   AccountBalanceStorage accountBalanceStorage;
@@ -66,16 +68,7 @@ public class GSheetBankStatusUpdater implements BankStatusUpdater {
     final Map<String, BankAccountStatus> previousStatuses,
     final Set<BankAccount> accounts
   ) {
-    final List<String> tokens = bankAccessStorage.getListOfTokens(BANK_TYPE);
-    log.info("Loaded tokens: {}", tokens.size());
-
-    if (tokens.isEmpty()) {
-      log.warn("No tokens found for GSheet");
-      return Set.copyOf(previousStatuses.values());
-    }
-
-    final String token = tokens.stream().findFirst().orElseThrow();
-    return gSheetService.getSheetsService(token)
+    return sheetsFactory.getSheetsService()
       .map(sheets -> {
         final var retrievedAccountStatuses = StreamEx.of(accounts)
           .mapToEntry(account -> gSheetService.readAccountStatus(account, sheets))

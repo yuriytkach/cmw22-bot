@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.BankAccount;
+import com.yuriytkach.batb.common.BankToken;
 import com.yuriytkach.batb.common.BankType;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 
@@ -27,7 +28,7 @@ public class SsmBankAccessStorage implements BankAccessStorage {
 
   @Override
   @CacheResult(cacheName = "ssm-tokens")
-  public List<String> getListOfTokens(final BankType bankType) {
+  public List<BankToken> getListOfTokens(final BankType bankType) {
     final String path = ssmProperties.prefix() + bankType.name().toLowerCase() + ssmProperties.tokens();
     return readParamsByPath(path, "tokens");
   }
@@ -72,7 +73,7 @@ public class SsmBankAccessStorage implements BankAccessStorage {
     }
   }
 
-  private List<String> readParamsByPath(final String path, final String paramTypeName) {
+  private List<BankToken> readParamsByPath(final String path, final String paramTypeName) {
     log.info("Getting {} from SSM path: {}", paramTypeName, path);
 
     final var request = GetParametersByPathRequest.builder()
@@ -84,7 +85,7 @@ public class SsmBankAccessStorage implements BankAccessStorage {
       final GetParametersByPathResponse response = ssmClient.getParametersByPath(request);
       if (response.hasParameters()) {
         final var result = response.parameters().stream()
-          .map(Parameter::value)
+          .map(param -> new BankToken(param.name(), param.value()))
           .toList();
         log.info("Found {} by path `{}`: {}", paramTypeName, path, result.size());
         return result;

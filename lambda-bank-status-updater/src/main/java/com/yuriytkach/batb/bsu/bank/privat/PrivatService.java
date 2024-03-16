@@ -14,6 +14,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import com.yuriytkach.batb.bsu.bank.privat.api.Balance;
 import com.yuriytkach.batb.bsu.bank.privat.api.PrivatApi;
+import com.yuriytkach.batb.common.BankToken;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
@@ -35,12 +36,13 @@ class PrivatService {
   private final PrivatApi api;
   private final Clock clock;
 
-  List<Balance> readAllAvailablePrivatAccounts(final String token) {
+  List<Balance> readAllAvailablePrivatAccounts(final BankToken token) {
+    log.info("Reading privat accounts for token: {}", token.name());
     try {
       final String startDate = START_DATE_FORMATTER
         .withZone(clock.getZone()).format(clock.instant());
 
-      final var balances = StreamEx.of(readAllBalances(token, startDate, null))
+      final var balances = StreamEx.of(readAllBalances(token.value(), startDate, null))
         .groupingBy(Balance::acc, collectingAndThen(reducing(this::selectLatestByDpd), Optional::get))
         .values();
 

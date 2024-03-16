@@ -2,19 +2,14 @@ package com.yuriytkach.batb.bsu.bank.gsheet;
 
 import static com.yuriytkach.batb.common.Currency.UAH;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.BatchUpdateValuesRequest;
 import com.google.api.services.sheets.v4.model.ValueRange;
@@ -34,25 +29,6 @@ import one.util.streamex.StreamEx;
 public class GSheetService {
 
   private final NumberFormat format = NumberFormat.getInstance(new Locale("uk", "UA"));
-
-  public Optional<Sheets> getSheetsService(final String token) {
-    try {
-      final GoogleCredential credential = GoogleCredential.fromStream(new ByteArrayInputStream(token.getBytes()))
-        .createScoped(Collections.singleton("https://www.googleapis.com/auth/spreadsheets"));
-
-      final Sheets sheets = new Sheets.Builder(
-        GoogleNetHttpTransport.newTrustedTransport(),
-        JacksonFactory.getDefaultInstance(),
-        credential
-      )
-        .setApplicationName("CMW22 Bot")
-        .build();
-      return Optional.of(sheets);
-    } catch (final Exception ex) {
-      log.error("Failed to create Google Sheets service: {}", ex.getMessage(), ex);
-      return Optional.empty();
-    }
-  }
 
   public Optional<GSheetData> readAccountStatus(final BankAccount account, final Sheets sheets) {
     if (account.properties() == null

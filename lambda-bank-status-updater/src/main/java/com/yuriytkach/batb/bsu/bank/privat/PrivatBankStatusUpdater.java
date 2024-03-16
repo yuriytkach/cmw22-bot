@@ -14,6 +14,7 @@ import com.yuriytkach.batb.bsu.bank.BankStatusUpdater;
 import com.yuriytkach.batb.bsu.bank.privat.api.Balance;
 import com.yuriytkach.batb.common.BankAccount;
 import com.yuriytkach.batb.common.BankAccountStatus;
+import com.yuriytkach.batb.common.BankToken;
 import com.yuriytkach.batb.common.BankType;
 import com.yuriytkach.batb.common.Currency;
 import com.yuriytkach.batb.common.storage.AccountBalanceStorage;
@@ -65,7 +66,7 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
     final Map<String, BankAccountStatus> previousStatuses,
     final Map<String, BankAccount> configuredAccounts
   ) {
-    final List<String> tokens = bankAccessStorage.getListOfTokens(BANK_TYPE);
+    final List<BankToken> tokens = bankAccessStorage.getListOfTokens(BANK_TYPE);
     log.info("Loaded tokens: {}", tokens.size());
 
     final var retrievedAccountStatuses = StreamEx.of(tokens)
