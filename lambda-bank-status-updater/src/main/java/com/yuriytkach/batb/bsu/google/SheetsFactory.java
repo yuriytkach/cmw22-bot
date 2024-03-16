@@ -1,4 +1,4 @@
-package com.yuriytkach.batb.bsu.bank.gsheet;
+package com.yuriytkach.batb.bsu.google;
 
 import static java.util.function.Predicate.not;
 
@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
-class SheetsFactory {
+public class SheetsFactory {
 
   static final List<String> GSHEET_ACCESS_SCOPE = List.of(SheetsScopes.SPREADSHEETS);
   public static final String APPLICATION_NAME = "CMW22 Bot";

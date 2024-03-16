@@ -1,4 +1,4 @@
-package com.yuriytkach.batb.bsu.bank.gsheet;
+package com.yuriytkach.batb.bsu.google;
 
 import static com.yuriytkach.batb.common.Currency.UAH;
 
