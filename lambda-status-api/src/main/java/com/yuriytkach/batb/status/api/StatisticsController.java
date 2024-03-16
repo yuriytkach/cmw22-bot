@@ -4,7 +4,6 @@ import org.slf4j.MDC;
 
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.CacheControl;
 import jakarta.ws.rs.core.Context;
@@ -14,34 +13,33 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Path("/status")
+@Path("/statistics")
 @RequiredArgsConstructor
-public class FundraiserStatusController {
+public class StatisticsController {
 
-  private final FundService fundService;
+  private final StatsService statsService;
   private final CacheControlProperties cacheControlProperties;
 
   @GET
-  @Path("/{fundraiserId}")
+  @Path("/")
   @Produces(MediaType.APPLICATION_JSON)
-  public Response hook(
-    @Context com.amazonaws.services.lambda.runtime.Context context,
-    @PathParam("fundraiserId") final String fundraiserId
+  public Response stats(
+    @Context com.amazonaws.services.lambda.runtime.Context context
   ) {
     MDC.put("awsRequestId", context.getAwsRequestId());
-    log.info("Get Fundraiser Status: {} AWS Request ID: {}", fundraiserId, context.getAwsRequestId());
+    log.info("Get Stats. AWS Request ID: {}", context.getAwsRequestId());
 
-    final var fundStatus = fundService.getFundStatus(fundraiserId);
+    final var result = statsService.getStatistic();
 
-    return fundStatus.map(fund -> {
-      log.info("Fundraiser status: {}", fund);
-      return Response.ok(fund).cacheControl(createCacheControl()).build();
+    return result.map(stats -> {
+      log.info("Statistics: {}", stats);
+      return Response.ok(stats).cacheControl(createCacheControl()).build();
     }).orElseGet(() -> Response.status(Response.Status.NOT_FOUND).build());
   }
 
   private CacheControl createCacheControl() {
     final CacheControl cacheControl = new CacheControl();
-    cacheControl.setMaxAge((int) cacheControlProperties.maxAge().fundStatus().getSeconds());
+    cacheControl.setMaxAge((int) cacheControlProperties.maxAge().stats().getSeconds());
     return cacheControl;
   }
 

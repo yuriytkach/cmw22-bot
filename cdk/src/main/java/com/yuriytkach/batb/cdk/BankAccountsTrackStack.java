@@ -105,8 +105,18 @@ public class BankAccountsTrackStack extends Stack {
           .build())
         .build()
     );
-    fundraiserResource.addMethod("GET", new LambdaIntegration(lambdaStatusApiAlias), MethodOptions.builder()
-      .build());
+    fundraiserResource.addMethod("GET", new LambdaIntegration(lambdaStatusApiAlias), MethodOptions.builder().build());
+
+    final IResource statsResource = restApi.getRoot().addResource(
+      "statistics",
+      ResourceOptions.builder()
+        .defaultCorsPreflightOptions(CorsOptions.builder()
+          .allowMethods(List.of("GET,HEAD,OPTIONS"))
+          .allowOrigins(List.of(CMW22_CORS_ORIGIN))
+          .build())
+        .build()
+    );
+    statsResource.addMethod("GET", new LambdaIntegration(lambdaStatusApiAlias), MethodOptions.builder().build());
   }
 
   private void addSsmReadPermissionsForBankStatusUpdaterLambda(final Function lambda, final String id) {
@@ -211,7 +221,7 @@ public class BankAccountsTrackStack extends Stack {
 
   private void createRunSchedule(final Alias lambdaAlias) {
     final var fullUpdaterRule = Rule.Builder.create(this, "BankStatusFullUpdaterRule")
-      .schedule(Schedule.rate(Duration.minutes(30)))
+      .schedule(Schedule.rate(Duration.minutes(27)))
       .build();
 
     final var targetFull = LambdaFunction.Builder.create(lambdaAlias)
@@ -360,7 +370,8 @@ public class BankAccountsTrackStack extends Stack {
       .actions(List.of("ssm:GetParameter"))
       .resources(
         Stream.of(
-            "arn:aws:ssm:%s:%s:parameter/funds/*"
+            "arn:aws:ssm:%s:%s:parameter/funds/*",
+            "arn:aws:ssm:%s:%s:parameter/stats"
           ).map(pattern -> pattern.formatted(
             Stack.of(this).getRegion(),
             Stack.of(this).getAccount()

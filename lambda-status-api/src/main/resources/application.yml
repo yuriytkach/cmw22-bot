@@ -1,3 +1,9 @@
+app:
+  cache-control:
+    max-age:
+      fund-status: 60s
+      stats: 2h
+
 quarkus:
   http:
     cors:
@@ -8,6 +14,8 @@ quarkus:
     caffeine:
       "fund-status":
         expire-after-write: 60s
+      "stats":
+        expire-after-write: 1h
   log:
     level: INFO
     min-level: DEBUG
