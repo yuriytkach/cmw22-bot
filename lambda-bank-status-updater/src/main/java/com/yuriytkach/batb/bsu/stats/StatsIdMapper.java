@@ -13,7 +13,7 @@ class StatsIdMapper {
     return switch (name.substring(0, Math.min(4, name.length())).toLowerCase(Locale.getDefault())) {
       case "авто" -> "cars";
       case "тепл" -> "thermals";
-      case "дода" -> "addons";
+      case "дода", "дада" -> "addons";
       case "раці" -> "radios";
       case "дрон" -> "drones";
       case "одяг" -> "clothes";

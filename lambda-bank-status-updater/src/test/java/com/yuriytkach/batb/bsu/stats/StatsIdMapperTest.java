@@ -14,6 +14,7 @@ class StatsIdMapperTest {
     "Автомобілів, cars",
     "Тепловізори, thermals",
     "Додатки, addons",
+    "Дадатки, addons",
     "Рацій, radios",
     "Дрони, drones",
     "Одяг/Взуття, clothes",
