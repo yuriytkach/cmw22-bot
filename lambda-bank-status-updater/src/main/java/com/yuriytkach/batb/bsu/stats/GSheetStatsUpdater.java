@@ -23,6 +23,7 @@ public class GSheetStatsUpdater {
 
   private final GSheetService gSheetService;
   private final StatisticStorage statisticStorage;
+  private final StatsIdMapper statsIdMapper;
 
   public void updateStats(final BankAccount statsConfig, final Sheets sheets) {
     gSheetService.readStats(statsConfig, sheets)
@@ -61,7 +62,7 @@ public class GSheetStatsUpdater {
 
   private StatisticData createStatsRecord(final GSheetService.StatsDataRecord stat, final long total) {
     return StatisticData.builder()
-      .id(stat.name())
+      .id(statsIdMapper.mapNameToId(stat.name()))
       .count(stat.count())
       .amount(stat.amount())
       .amountPercent(Math.round((double) stat.amount() * 100.0 / total))
