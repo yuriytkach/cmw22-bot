@@ -8,7 +8,8 @@ public record StatusUpdateRequest(UpdateType check) {
   @RegisterForReflection
   public enum UpdateType {
     CURRENT,
-    FULL
+    FULL,
+    STATS
   }
 
 }

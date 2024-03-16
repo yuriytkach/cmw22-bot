@@ -30,11 +30,8 @@ public class GSheetService {
 
   private final NumberFormat format = NumberFormat.getInstance(new Locale("uk", "UA"));
 
-  public Optional<GSheetData> readAccountStatus(final BankAccount account, final Sheets sheets) {
-    if (account.properties() == null
-      || account.properties().isEmpty()
-      || !account.properties().containsKey("sheetName")
-    ) {
+  public Optional<GSheetAccountData> readAccountStatus(final BankAccount account, final Sheets sheets) {
+    if (isAccountDataValid(account)) {
       log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
       return Optional.empty();
     }
@@ -63,7 +60,7 @@ public class GSheetService {
       final Long raised = raisedStr.map(this::parseLong).orElse(0L);
       final Long spent = spentStr.map(this::parseLong).orElse(0L);
 
-      final var result = GSheetData.builder()
+      final var result = GSheetAccountData.builder()
         .sheetId(account.id())
         .raised(raised)
         .raisedUah(raisedStrUah.map(this::parseLong).orElse(currency == UAH ? raised : 0))
@@ -79,6 +76,56 @@ public class GSheetService {
       log.error("Failed to read account status from Google Sheets: {}", ex.getMessage(), ex);
       return Optional.empty();
     }
+  }
+
+  public Optional<GSheetStatsData> readStats(final BankAccount account, final Sheets sheets) {
+    if (isAccountDataValid(account)
+    ) {
+      log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
+      return Optional.empty();
+    }
+
+    final String sheetName = account.properties().get("sheetName");
+    final String range = account.properties().get("dataRange");
+    final int maxCol = Integer.parseInt(account.properties().get("maxCol"));
+
+    log.debug("Reading cells in range: {} for sheet:{}", range, sheetName);
+
+    try {
+      final ValueRange response = sheets.spreadsheets().values()
+        .get(account.id(), "'%s'!%s".formatted(sheetName, range))
+        .execute();
+
+      final List<List<Object>> values = response.getValues();
+
+      if (values == null || values.isEmpty()) {
+        log.debug("No data found in sheet {} for range {}", sheetName, range);
+        return Optional.empty();
+      } else {
+        final var resultList = values.stream()
+          .filter(objects -> isValidStatDataRow(objects, maxCol))
+          .map(row -> new StatsDataRecord(
+            String.valueOf(row.get(0)),
+            Optional.ofNullable(row.get(3)).map(this::parseLongStrip).orElse(0L),
+            Optional.ofNullable(row.get(4)).map(this::parseLongStrip).orElse(0L)
+          ))
+          .toList();
+
+        return Optional.of(new GSheetStatsData(resultList));
+      }
+    } catch (final Exception ex) {
+      log.error("Failed to read stats from Google Sheets: {}", ex.getMessage(), ex);
+      return Optional.empty();
+    }
+  }
+
+  private Long parseLongStrip(final Object obj) {
+    final var str = String.valueOf(obj).strip().replaceAll("\\D", "");
+    return Long.parseLong(str);
+  }
+
+  private boolean isValidStatDataRow(final List<Object> objects, final int maxCols) {
+    return objects != null && objects.size() >= maxCols;
   }
 
   @SneakyThrows
@@ -193,7 +240,19 @@ public class GSheetService {
     return amountUahValueRange;
   }
 
+  private boolean isAccountDataValid(final BankAccount account) {
+    return account.properties() == null
+      || account.properties().isEmpty()
+      || !account.properties().containsKey("sheetName");
+  }
+
   @Builder
   @RegisterForReflection
-  public record GSheetData(String sheetId, long raised, long raisedUah, long spent, long spentUah, Currency currency) { }
+  public record GSheetAccountData(
+    String sheetId, long raised, long raisedUah, long spent, long spentUah, Currency currency
+  ) { }
+
+  public record GSheetStatsData(List<StatsDataRecord> stats) {}
+
+  public record StatsDataRecord(String name, long count, long amount) {}
 }

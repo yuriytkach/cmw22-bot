@@ -15,4 +15,6 @@ public interface BankAccessStorage {
 
   Optional<BankAccount> getRegistryConfig();
 
+  Optional<BankAccount> getStatsConfig();
+
 }

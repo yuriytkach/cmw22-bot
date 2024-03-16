@@ -161,7 +161,17 @@ public class BankAccountsTrackStack extends Stack {
           prefix,
           "registry"
         ),
+        "arn:aws:ssm:%s:%s:parameter/%s/gsheet/%s".formatted(
+          Stack.of(this).getRegion(),
+          Stack.of(this).getAccount(),
+          prefix,
+          "stats"
+        ),
         "arn:aws:ssm:%s:%s:parameter/funds/*".formatted(
+          Stack.of(this).getRegion(),
+          Stack.of(this).getAccount()
+        ),
+        "arn:aws:ssm:%s:%s:parameter/stats".formatted(
           Stack.of(this).getRegion(),
           Stack.of(this).getAccount()
         )
@@ -185,6 +195,10 @@ public class BankAccountsTrackStack extends Stack {
             Stack.of(this).getRegion(),
             Stack.of(this).getAccount()
           ))
+          .append("arn:aws:ssm:%s:%s:parameter/stats".formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
           .toList())
       .build();
 
@@ -197,7 +211,7 @@ public class BankAccountsTrackStack extends Stack {
 
   private void createRunSchedule(final Alias lambdaAlias) {
     final var fullUpdaterRule = Rule.Builder.create(this, "BankStatusFullUpdaterRule")
-      .schedule(Schedule.rate(Duration.minutes(25)))
+      .schedule(Schedule.rate(Duration.minutes(30)))
       .build();
 
     final var targetFull = LambdaFunction.Builder.create(lambdaAlias)
@@ -217,6 +231,17 @@ public class BankAccountsTrackStack extends Stack {
       .build();
 
     currentUpdaterRule.addTarget(targetCurrent);
+
+    final var statsUpdaterRule = Rule.Builder.create(this, "BankStatusStatsUpdaterRule")
+      .schedule(Schedule.rate(Duration.hours(6)))
+      .build();
+
+    final var targetStats = LambdaFunction.Builder.create(lambdaAlias)
+      .retryAttempts(0)
+      .event(RuleTargetInput.fromObject(Map.of("check", "STATS")))
+      .build();
+
+    statsUpdaterRule.addTarget(targetStats);
   }
 
   private Alias createVersionAndUpdateAlias(final Function lambda, final String id) {

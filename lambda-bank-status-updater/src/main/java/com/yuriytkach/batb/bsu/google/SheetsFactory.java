@@ -19,19 +19,19 @@ import com.yuriytkach.batb.common.BankType;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
+@RequiredArgsConstructor
 public class SheetsFactory {
 
   static final List<String> GSHEET_ACCESS_SCOPE = List.of(SheetsScopes.SPREADSHEETS);
   public static final String APPLICATION_NAME = "CMW22 Bot";
   public static final String EMAIL_TOKEN_NAME = "email";
 
-  @Inject
-  BankAccessStorage bankAccessStorage;
+  private final BankAccessStorage bankAccessStorage;
 
   public Optional<Sheets> getSheetsService() {
     return loadAccessData().flatMap(this::createSheetsService);

@@ -21,9 +21,15 @@ public interface SsmProperties {
   @WithDefault("/funds/")
   String funds();
 
+  @WithDefault("/stats")
+  String statistics();
+
   @WithDefault("current")
   String currentFundProp();
 
   @WithDefault("gsheet/registry")
   String registryGsheet();
+
+  @WithDefault("gsheet/stats")
+  String statsGsheet();
 }

@@ -4,6 +4,7 @@ import org.slf4j.MDC;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.yuriytkach.batb.bsu.stats.StatsUpdater;
 import com.yuriytkach.batb.common.StatusUpdateRequest;
 
 import jakarta.inject.Inject;
@@ -21,6 +22,9 @@ public class BankStatusUpdaterLambda implements RequestHandler<StatusUpdateReque
   @Inject
   AllAccountsUpdater allAccountsUpdater;
 
+  @Inject
+  StatsUpdater statsUpdater;
+
   @Override
   @SneakyThrows
   public Void handleRequest(final StatusUpdateRequest input, final Context context) {
@@ -30,6 +34,7 @@ public class BankStatusUpdaterLambda implements RequestHandler<StatusUpdateReque
     switch (input.check()) {
       case CURRENT -> currentFundraiserUpdater.update();
       case FULL -> allAccountsUpdater.update();
+      case STATS -> statsUpdater.update();
     }
 
     return null;

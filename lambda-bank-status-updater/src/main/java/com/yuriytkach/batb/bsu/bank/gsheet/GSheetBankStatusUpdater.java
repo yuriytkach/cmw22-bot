@@ -91,17 +91,17 @@ public class GSheetBankStatusUpdater implements BankStatusUpdater {
 
   private BankAccountStatus buildBankAccountStatus(
     final BankAccount bankAccount,
-    final GSheetService.GSheetData gSheetData
+    final GSheetService.GSheetAccountData gSheetAccountData
   ) {
     return BankAccountStatus.builder()
       .accountId(bankAccount.id())
       .accountName(bankAccount.name())
       .bankType(BANK_TYPE)
-      .amount(gSheetData.raised())
-      .amountUah(gSheetData.raisedUah())
-      .currency(gSheetData.currency())
-      .spentAmount(gSheetData.spent())
-      .spentAmountUah(gSheetData.spentUah())
+      .amount(gSheetAccountData.raised())
+      .amountUah(gSheetAccountData.raisedUah())
+      .currency(gSheetAccountData.currency())
+      .spentAmount(gSheetAccountData.spent())
+      .spentAmountUah(gSheetAccountData.spentUah())
       .updatedAt(clock.instant())
       .ignoreForTotal(true)
       .build();

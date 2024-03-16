@@ -16,7 +16,6 @@ import software.amazon.awssdk.services.ssm.SsmClient;
 import software.amazon.awssdk.services.ssm.model.GetParameterRequest;
 import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
 import software.amazon.awssdk.services.ssm.model.GetParametersByPathResponse;
-import software.amazon.awssdk.services.ssm.model.Parameter;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -59,18 +58,16 @@ public class SsmBankAccessStorage implements BankAccessStorage {
     final String path = ssmProperties.prefix() + ssmProperties.registryGsheet();
     log.info("Getting registry config from SSM path: {}", path);
 
-    final var request = GetParameterRequest.builder()
-      .name(path)
-      .build();
+    return readBankAccountObject(path);
+  }
 
-    try {
-      final var response = ssmClient.getParameter(request);
-      final var valueJson = response.parameter().value();
-      return Optional.ofNullable(objectMapper.readValue(valueJson, BankAccount.class));
-    } catch (final Exception ex) {
-      log.error("Cannot read ssm parameter by path `{}`: {}", path, ex.getMessage());
-      return Optional.empty();
-    }
+  @Override
+  @CacheResult(cacheName = "ssm-stats-config")
+  public Optional<BankAccount> getStatsConfig() {
+    final String path = ssmProperties.prefix() + ssmProperties.statsGsheet();
+    log.info("Getting stats config from SSM path: {}", path);
+
+    return readBankAccountObject(path);
   }
 
   private List<BankToken> readParamsByPath(final String path, final String paramTypeName) {
@@ -96,6 +93,20 @@ public class SsmBankAccessStorage implements BankAccessStorage {
     } catch (final Exception ex) {
       log.error("Cannot read ssm parameters by path `{}`: {}", path, ex.getMessage());
       return List.of();
+    }
+  }
+
+  private Optional<BankAccount> readBankAccountObject(final String path) {
+    final var request = GetParameterRequest.builder()
+      .name(path)
+      .build();
+    try {
+      final var response = ssmClient.getParameter(request);
+      final var valueJson = response.parameter().value();
+      return Optional.ofNullable(objectMapper.readValue(valueJson, BankAccount.class));
+    } catch (final Exception ex) {
+      log.error("Cannot read ssm parameter by path `{}`: {}", path, ex.getMessage());
+      return Optional.empty();
     }
   }
 }
