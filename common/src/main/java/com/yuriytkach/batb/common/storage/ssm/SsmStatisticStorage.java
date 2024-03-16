@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.Statistic;
 import com.yuriytkach.batb.common.storage.StatisticStorage;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.ssm.SsmClient;
@@ -16,6 +17,7 @@ import software.amazon.awssdk.services.ssm.model.ParameterType;
 import software.amazon.awssdk.services.ssm.model.PutParameterRequest;
 
 @Slf4j
+@ApplicationScoped
 @RequiredArgsConstructor
 public class SsmStatisticStorage implements StatisticStorage {
 

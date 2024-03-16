@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.yuriytkach.batb.common.secret.SecretsReader;
 
 import io.quarkus.cache.CacheResult;
+import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.ssm.SsmClient;
@@ -13,6 +14,7 @@ import software.amazon.awssdk.services.ssm.model.GetParameterResponse;
 import software.amazon.awssdk.services.ssm.model.ParameterNotFoundException;
 
 @Slf4j
+@ApplicationScoped
 @RequiredArgsConstructor
 public class SsmSecretsReader implements SecretsReader {
 

@@ -13,6 +13,11 @@ quarkus:
       url: https://api.telegram.org
       connect-timeout: 2000
       read-timeout: 10000
+  cache:
+    enabled: true
+    caffeine:
+      "ssm-secrets":
+        expire-after-write: 1h
   log:
     level: INFO
     min-level: DEBUG

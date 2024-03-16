@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.BankAccountStatus;
 import com.yuriytkach.batb.common.storage.AccountBalanceStorage;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.StreamEx;
@@ -22,6 +23,7 @@ import software.amazon.awssdk.services.ssm.model.ParameterType;
 import software.amazon.awssdk.services.ssm.model.PutParameterRequest;
 
 @Slf4j
+@ApplicationScoped
 @RequiredArgsConstructor
 public class SsmAccountBalanceStorage implements AccountBalanceStorage {
 

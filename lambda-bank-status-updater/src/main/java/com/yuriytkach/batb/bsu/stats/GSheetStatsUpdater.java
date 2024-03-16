@@ -1,6 +1,6 @@
 package com.yuriytkach.batb.bsu.stats;
 
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,6 +24,7 @@ public class GSheetStatsUpdater {
   private final GSheetService gSheetService;
   private final StatisticStorage statisticStorage;
   private final StatsIdMapper statsIdMapper;
+  private final Clock clock;
 
   public void updateStats(final BankAccount statsConfig, final Sheets sheets) {
     gSheetService.readStats(statsConfig, sheets)
@@ -55,7 +56,7 @@ public class GSheetStatsUpdater {
       .map(stat -> createStatsRecord(stat, total))
       .toList();
 
-    final var totalStatistic = new Statistic(stats, total, Instant.now());
+    final var totalStatistic = new Statistic(stats, total, clock.instant());
 
     statisticStorage.save(totalStatistic);
   }

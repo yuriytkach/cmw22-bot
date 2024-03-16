@@ -2,7 +2,7 @@ plugins {
     id 'java-library'
     id 'io.quarkus'
     id 'io.freefair.lombok' version '8.6'
-    id 'org.kordamp.gradle.jandex' version "1.1.0"
+    id "com.github.vlsi.jandex" version "1.90"
 }
 
 dependencies {

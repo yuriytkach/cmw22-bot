@@ -10,6 +10,7 @@ import com.yuriytkach.batb.common.BankType;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 
 import io.quarkus.cache.CacheResult;
+import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.ssm.SsmClient;
@@ -18,6 +19,7 @@ import software.amazon.awssdk.services.ssm.model.GetParametersByPathRequest;
 import software.amazon.awssdk.services.ssm.model.GetParametersByPathResponse;
 
 @Slf4j
+@ApplicationScoped
 @RequiredArgsConstructor
 public class SsmBankAccessStorage implements BankAccessStorage {
 
