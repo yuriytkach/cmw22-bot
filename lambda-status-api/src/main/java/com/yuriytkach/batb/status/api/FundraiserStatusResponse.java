@@ -13,7 +13,8 @@ public record FundraiserStatusResponse(
   long spent,
   String name,
   String description,
-  Instant lastUpdatedAt
+  Instant lastUpdatedAt,
+  boolean active
 ) {
 
 }

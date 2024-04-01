@@ -117,6 +117,7 @@ class FundraiserStatusControllerIT {
       .raised(50)
       .spent(6)
       .lastUpdatedAt(Instant.parse("2021-01-01T00:00:00Z"))
+      .active(true)
       .build();
   }
 
@@ -129,6 +130,7 @@ class FundraiserStatusControllerIT {
       .lastSpent(600)
       .lastUpdatedAt(Instant.parse("2021-01-01T00:00:00Z"))
       .id("fundId")
+      .active(true)
       .build();
   }
 }

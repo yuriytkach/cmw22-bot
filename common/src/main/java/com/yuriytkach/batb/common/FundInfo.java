@@ -16,5 +16,6 @@ public record FundInfo(
   long goal,
   long lastRaised,
   long lastSpent,
-  Instant lastUpdatedAt
+  Instant lastUpdatedAt,
+  boolean active
 ) { }
