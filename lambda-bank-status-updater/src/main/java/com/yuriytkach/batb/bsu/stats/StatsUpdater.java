@@ -1,7 +1,6 @@
 package com.yuriytkach.batb.bsu.stats;
 
-import com.yuriytkach.batb.bsu.google.GSheetService;
-import com.yuriytkach.batb.bsu.google.SheetsFactory;
+import com.yuriytkach.batb.common.google.SheetsFactory;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 
 import jakarta.enterprise.context.ApplicationScoped;

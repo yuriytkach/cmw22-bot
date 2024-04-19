@@ -3,7 +3,7 @@ package com.yuriytkach.batb.bsu.bank.gsheet;
 import java.util.List;
 
 import com.yuriytkach.batb.bsu.google.GSheetService;
-import com.yuriytkach.batb.bsu.google.SheetsFactory;
+import com.yuriytkach.batb.common.google.SheetsFactory;
 import com.yuriytkach.batb.common.BankAccountStatus;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 

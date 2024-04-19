@@ -1,0 +1,21 @@
+quarkus:
+  rest-client:
+    privatbank:
+      url: https://acp.privatbank.ua
+      connect-timeout: 2000
+      read-timeout: 10000
+  log:
+    level: INFO
+    min-level: DEBUG
+    console:
+      enable: true
+      format: '%d{HH:mm:ss.SSS} %-5p (%-10t) [%c{2.}] %s%e%n'
+    category:
+      "com.yuriytkach":
+        level: DEBUG
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        darken: 1

@@ -16,4 +16,4 @@ include 'lambda-telegram-bot'
 include 'cdk'
 include 'lambda-bot-authorizer'
 include 'lambda-status-api'
-
+include 'lambda-donators-reporter'

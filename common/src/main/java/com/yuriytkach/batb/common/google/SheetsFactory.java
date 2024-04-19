@@ -1,4 +1,4 @@
-package com.yuriytkach.batb.bsu.google;
+package com.yuriytkach.batb.common.google;
 
 import static java.util.function.Predicate.not;
 
