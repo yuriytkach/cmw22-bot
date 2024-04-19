@@ -45,7 +45,7 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
     final Set<BankAccount> configuredAccounts = readBankAccounts();
     log.info("Updating all account statuses for Monobank: {}", configuredAccounts.size());
 
-    return updateAccounts(previousStatuses, configuredAccounts);
+    return updateAccounts(previousStatuses, configuredAccounts, true);
   }
 
   @Override
@@ -55,17 +55,18 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
       .toImmutableSet();
 
     log.info("Updating account statuses for Monobank: {}", accountsToUpdate);
-    return updateAccounts(specificStatuses, accountsToUpdate);
+    return updateAccounts(specificStatuses, accountsToUpdate, false);
   }
 
   private Set<BankAccountStatus> updateAccounts(
     final Map<String, BankAccountStatus> previousStatuses,
-    final Set<BankAccount> accounts
+    final Set<BankAccount> accounts,
+    final boolean includeJarOwnerInName
   ) {
     final var retrievedAccountStatuses = StreamEx.of(accounts)
       .mapToEntry(account -> monoService.readJarStatus(account.id()))
       .flatMapValues(Optional::stream)
-      .mapKeyValue(this::buildBankAccountStatus)
+      .mapKeyValue((bankAccount, monoJar) -> buildBankAccountStatus(bankAccount, monoJar, includeJarOwnerInName))
       .flatMap(Optional::stream)
       .toImmutableSet();
     log.info("Total bank account statuses retrieved: {}", retrievedAccountStatuses.size());
@@ -84,14 +85,20 @@ public class MonoBankStatusUpdater implements BankStatusUpdater {
       .toImmutableSet();
   }
 
-  private Optional<BankAccountStatus> buildBankAccountStatus(final BankAccount bankAccount, final MonoJar monoJar) {
+  private Optional<BankAccountStatus> buildBankAccountStatus(
+    final BankAccount bankAccount,
+    final MonoJar monoJar,
+    final boolean includeJarOwnerInName
+  ) {
     final Optional<Currency> curr = Currency.fromIsoCode(monoJar.currency());
     if (curr.isEmpty()) {
       log.warn("Unknown currency: {}. Cannot map account: {}", monoJar.currency(), bankAccount);
     }
     return curr.map(currency -> BankAccountStatus.builder()
       .accountId(bankAccount.id())
-      .accountName("%s (%s)".formatted(bankAccount.name(), monoJar.ownerName()))
+      .accountName(
+        includeJarOwnerInName ? "%s (%s)".formatted(bankAccount.name(), monoJar.ownerName()) : bankAccount.name()
+      )
       .bankType(BANK_TYPE)
       .amount(monoJar.amount())
       .amountUah(monoJar.amount())
