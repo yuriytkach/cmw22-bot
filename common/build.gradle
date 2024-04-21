@@ -16,6 +16,7 @@ dependencies {
     api 'software.amazon.awssdk:url-connection-client'
 
     api 'one.util:streamex:0.8.2'
+    api 'org.apache.commons:commons-lang3:3.14.0'
     api 'com.github.spotbugs:spotbugs-annotations:4.8.3'
 
     api 'com.google.api-client:google-api-client-jackson2:2.4.0'
@@ -30,10 +31,10 @@ tasks.withType(Test).configureEach {
         events "passed", "skipped", "failed"
     }
 }
-
-tasks.named('compileTestJava') {
-    dependsOn 'jandex'
-}
+//
+//tasks.named('compileTestJava') {
+//    dependsOn 'jandex'
+//}
 
 tasks.named('quarkusDependenciesBuild') {
     dependsOn 'jandex'

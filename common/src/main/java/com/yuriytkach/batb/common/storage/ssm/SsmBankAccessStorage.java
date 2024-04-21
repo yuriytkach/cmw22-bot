@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.BankAccount;
 import com.yuriytkach.batb.common.BankToken;
 import com.yuriytkach.batb.common.BankType;
+import com.yuriytkach.batb.common.json.JsonReader;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 
 import io.quarkus.cache.CacheResult;
@@ -26,6 +27,7 @@ public class SsmBankAccessStorage implements BankAccessStorage {
   private final SsmClient ssmClient;
   private final SsmProperties ssmProperties;
   private final ObjectMapper objectMapper;
+  private final JsonReader jsonReader;
 
   @Override
   @CacheResult(cacheName = "ssm-tokens")
@@ -105,7 +107,7 @@ public class SsmBankAccessStorage implements BankAccessStorage {
     try {
       final var response = ssmClient.getParameter(request);
       final var valueJson = response.parameter().value();
-      return Optional.ofNullable(objectMapper.readValue(valueJson, BankAccount.class));
+      return jsonReader.readValue(valueJson, BankAccount.class);
     } catch (final Exception ex) {
       log.error("Cannot read ssm parameter by path `{}`: {}", path, ex.getMessage());
       return Optional.empty();

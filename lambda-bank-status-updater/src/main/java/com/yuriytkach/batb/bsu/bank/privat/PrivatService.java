@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.reducing;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import com.yuriytkach.batb.bsu.bank.privat.api.Balance;
 import com.yuriytkach.batb.bsu.bank.privat.api.PrivatApi;
 import com.yuriytkach.batb.common.BankToken;
+import com.yuriytkach.batb.common.privatbank.PrivatbankUtils;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
@@ -29,18 +31,17 @@ import one.util.streamex.StreamEx;
 @RequiredArgsConstructor
 class PrivatService {
 
-  public static final DateTimeFormatter START_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
   public static final DateTimeFormatter DPD_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
   @RestClient
   private final PrivatApi api;
   private final Clock clock;
+  private final PrivatbankUtils privatbankUtils;
 
   List<Balance> readAllAvailablePrivatAccounts(final BankToken token) {
     log.info("Reading privat accounts for token: {}", token.name());
     try {
-      final String startDate = START_DATE_FORMATTER
-        .withZone(clock.getZone()).format(clock.instant());
+      final String startDate = privatbankUtils.formatDate(LocalDate.now(clock));
 
       final var balances = StreamEx.of(readAllBalances(token.value(), startDate, null))
         .groupingBy(Balance::acc, collectingAndThen(reducing(this::selectLatestByDpd), Optional::get))

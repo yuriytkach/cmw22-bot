@@ -1,3 +1,7 @@
+txfetcher:
+  privat:
+    config-key: /batb/tx/privat/config
+
 quarkus:
   rest-client:
     privatbank:
@@ -19,3 +23,11 @@ quarkus:
     log:
       console:
         darken: 1
+
+"%test":
+  quarkus:
+    log:
+      min-level: TRACE
+      category:
+        "com.yuriytkach":
+          level: TRACE

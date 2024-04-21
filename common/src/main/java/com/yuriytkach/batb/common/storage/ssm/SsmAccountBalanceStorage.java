@@ -6,6 +6,7 @@ import java.util.Set;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.BankAccountStatus;
+import com.yuriytkach.batb.common.json.JsonReader;
 import com.yuriytkach.batb.common.storage.AccountBalanceStorage;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -30,6 +31,7 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
   private final SsmClient ssmClient;
   private final SsmProperties ssmProperties;
   private final ObjectMapper objectMapper;
+  private final JsonReader jsonReader;
 
   @Override
   public void saveAll(final Set<BankAccountStatus> bankAccountStatuses) {
@@ -57,8 +59,7 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
         if (response.hasParameters()) {
           result = StreamEx.of(response.parameters())
             .map(Parameter::value)
-            .map(this::deserializeBankStatus)
-            .flatMap(Optional::stream)
+            .flatMap(value -> jsonReader.readValue(value, BankAccountStatus.class).stream())
             .toImmutableSet();
           log.info("Found account balances by path `{}`: {}", path, result.size());
           finalRez.addAll(result);
@@ -86,21 +87,12 @@ public class SsmAccountBalanceStorage implements AccountBalanceStorage {
     try {
       final GetParameterResponse response = ssmClient.getParameter(request);
       return Optional.of(response.parameter().value())
-        .flatMap(this::deserializeBankStatus);
+        .flatMap(value -> jsonReader.readValue(value, BankAccountStatus.class));
     } catch (final ParameterNotFoundException ex) {
       log.info("SSM Parameter not found: {}", path);
       return Optional.empty();
     } catch (final Exception ex) {
       log.error("Error reading secret {}: {}", path, ex.getMessage());
-      return Optional.empty();
-    }
-  }
-
-  private Optional<BankAccountStatus> deserializeBankStatus(final String json) {
-    try {
-      return Optional.of(objectMapper.readValue(json, BankAccountStatus.class));
-    } catch (final Exception ex) {
-      log.error("Cannot deserialize bank account status: {}", ex.getMessage());
       return Optional.empty();
     }
   }

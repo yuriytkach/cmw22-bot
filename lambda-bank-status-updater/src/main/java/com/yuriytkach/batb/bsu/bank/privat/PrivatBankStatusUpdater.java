@@ -17,6 +17,7 @@ import com.yuriytkach.batb.common.BankAccountStatus;
 import com.yuriytkach.batb.common.BankToken;
 import com.yuriytkach.batb.common.BankType;
 import com.yuriytkach.batb.common.Currency;
+import com.yuriytkach.batb.common.privatbank.PrivatbankUtils;
 import com.yuriytkach.batb.common.storage.AccountBalanceStorage;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 
@@ -35,7 +36,7 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
   private final BankAccessStorage bankAccessStorage;
   private final AccountBalanceStorage accountBalanceStorage;
   private final PrivatService privatService;
-  private final PrivatBalanceAmountParser privatBalanceAmountParser;
+  private final PrivatbankUtils privatbankUtils;
   private final Clock clock;
 
   @Override
@@ -102,8 +103,8 @@ public class PrivatBankStatusUpdater implements BankStatusUpdater {
       .accountId(balance.acc())
       .accountName(bankAccount.name())
       .bankType(BANK_TYPE)
-      .amount(privatBalanceAmountParser.parseAmount(balance.balanceOut()))
-      .amountUah(privatBalanceAmountParser.parseAmount(balance.balanceOutEq()))
+      .amount(privatbankUtils.parseAmount(balance.balanceOut()))
+      .amountUah(privatbankUtils.parseAmount(balance.balanceOutEq()))
       .currency(currency)
       .updatedAt(clock.instant())
       .gsheetStatRow(bankAccount.gsheetStatRow())
