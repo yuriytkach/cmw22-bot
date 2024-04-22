@@ -42,7 +42,7 @@ subprojects {
         }
     }
 
-    if (name != 'common' && name != 'cdk') {
+    if (name != 'common' && name != 'cdk' && name != 'lambda-ai-service') {
         dependencies {
             implementation project(':common')
         }

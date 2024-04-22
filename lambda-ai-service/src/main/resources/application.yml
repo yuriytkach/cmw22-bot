@@ -1,0 +1,31 @@
+quarkus:
+  langchain4j:
+    openai:
+      api-key: 'api-key'
+      timeout: 60s
+      chat-model:
+        temperature: 0.5
+        model-name: gpt-3.5-turbo-0125
+  log:
+    level: INFO
+    min-level: DEBUG
+    console:
+      enable: true
+      format: '%d{HH:mm:ss.SSS} %-5p (%-10t) [%c{2.}] %s%e%n'
+    category:
+      "com.yuriytkach":
+        level: DEBUG
+
+"%dev":
+  quarkus:
+    log:
+      console:
+        darken: 1
+
+"%test":
+  quarkus:
+    log:
+      min-level: TRACE
+      category:
+        "com.yuriytkach":
+          level: TRACE

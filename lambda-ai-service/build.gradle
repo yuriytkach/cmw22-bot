@@ -1,0 +1,14 @@
+plugins {
+    id 'io.quarkus'
+    id 'io.freefair.lombok' version '8.6'
+}
+
+dependencies {
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:quarkus-amazon-services-bom:${quarkusPlatformVersion}")
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-config-yaml'
+    implementation 'io.quarkus:quarkus-amazon-lambda'
+
+    implementation 'io.quarkiverse.langchain4j:quarkus-langchain4j-openai:0.11.1'
+}
