@@ -2,6 +2,10 @@ txfetcher:
   privat:
     config-key: /batb/tx/privat/config
 
+translation:
+  lambda:
+    function-name: lambda-ai-service
+
 quarkus:
   rest-client:
     privatbank:

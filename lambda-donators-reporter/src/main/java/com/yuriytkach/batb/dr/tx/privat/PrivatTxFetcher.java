@@ -2,8 +2,10 @@ package com.yuriytkach.batb.dr.tx.privat;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import com.yuriytkach.batb.common.BankToken;
 import com.yuriytkach.batb.common.BankType;
 import com.yuriytkach.batb.common.json.JsonReader;
 import com.yuriytkach.batb.common.secret.SecretsReader;
@@ -29,8 +31,22 @@ public class PrivatTxFetcher implements DonationTransactionFetcher {
 
   @Override
   public Set<DonationTransaction> fetchTransactions(final LocalDate startDate) {
-    return secretsReader.readSecret(props.configKey())
-      .flatMap(value -> jsonReader.readValue(value, PrivatTxFetcherConfig.class))
+    final Optional<String> configOpt = secretsReader.readSecret(props.configKey());
+
+    if (configOpt.isEmpty()) {
+      log.error("Cannot read privat TXes config from SSM");
+      return Set.of();
+    }
+
+    final Optional<PrivatTxFetcherConfig> parsedConfigOpt = configOpt
+      .flatMap(value -> jsonReader.readValue(value, PrivatTxFetcherConfig.class));
+
+    if (parsedConfigOpt.isEmpty()) {
+      log.error("Cannot parse privat TXes config");
+      return Set.of();
+    }
+
+    return parsedConfigOpt
       .map(config -> readTxes(config, startDate))
       .orElseGet(() -> {
         log.error("Cannot read privat TXes");
@@ -40,12 +56,17 @@ public class PrivatTxFetcher implements DonationTransactionFetcher {
 
   private Set<DonationTransaction> readTxes(final PrivatTxFetcherConfig config, final LocalDate startDate) {
     log.info("Reading privat TXes for accounts: {} with token: {}", config.accounts(), config.tokenName());
-    final var privatToken = bankAccessStorage.getListOfTokens(BankType.PRIVAT).stream()
+    final List<BankToken> listOfTokens = bankAccessStorage.getListOfTokens(BankType.PRIVAT);
+    final var privatToken = listOfTokens.stream()
       .filter(token -> token.name().equals(config.tokenName()))
       .findFirst();
 
     if (privatToken.isEmpty()) {
-      log.error("Cannot find privat token with name: {}", config.tokenName());
+      log.error(
+        "Cannot find privat token with name: {} among: {}",
+        config.tokenName(),
+        listOfTokens.stream().map(BankToken::name).toList()
+      );
       return Set.of();
     } else {
       log.debug("Found privat token. Getting transactions...");

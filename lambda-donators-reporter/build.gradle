@@ -4,6 +4,9 @@ plugins {
 }
 
 dependencies {
+    implementation enforcedPlatform("software.amazon.awssdk:bom:2.25.35")
+    implementation 'software.amazon.awssdk:lambda'
+
     implementation 'io.quarkus:quarkus-rest-client-jackson'
 
     integrationTestImplementation 'com.github.tomakehurst:wiremock-jre8:3.0.1'
