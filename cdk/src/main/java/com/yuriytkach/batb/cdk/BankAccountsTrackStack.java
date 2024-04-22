@@ -62,6 +62,10 @@ public class BankAccountsTrackStack extends Stack {
 
     final var lambdaStatusApiAlias = createStatusApiLambda();
 
+    final var lambdaAiServiceAlias = createAiServiceLambda();
+
+    createDonatorsReportLambda(lambdaAiServiceAlias);
+
     final RequestAuthorizer authorizer = RequestAuthorizer.Builder.create(this, "TelegramAuthorizerBot")
       .handler(lambdaBotAuthorizerAlias)
       .identitySources(List.of("method.request.header.X-Telegram-Bot-Api-Secret-Token"))
@@ -386,6 +390,80 @@ public class BankAccountsTrackStack extends Stack {
     );
 
     return createVersionAndUpdateAlias(lambda, "StatusApiLambda");
+  }
+
+  private Alias createAiServiceLambda() {
+    final var lambda = Function.Builder.create(this, "AiServiceLambda")
+      .runtime(Runtime.PROVIDED_AL2023)
+      .code(Code.fromAsset("../lambda-ai-service/build/function.zip"))
+      .handler("not.used")
+      .logRetention(RetentionDays.ONE_WEEK)
+      .memorySize(256)
+      .timeout(Duration.minutes(2))
+      .environment(Map.of(
+        "DISABLE_SIGNAL_HANDLERS", "true",
+        "QUARKUS_LANGCHAIN4J_OPENAI_API_KEY", "api-key"
+      ))
+      .build();
+
+    return createVersionAndUpdateAlias(lambda, "AiServiceLambda");
+  }
+
+  private void createDonatorsReportLambda(final Alias lambdaAiServiceAlias) {
+    final var lambda = Function.Builder.create(this, "DonatorsReporterLambda")
+      .runtime(Runtime.JAVA_21)
+      .code(Code.fromAsset("../lambda-donators-reporter/build/function.zip"))
+      .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
+      .logRetention(RetentionDays.ONE_WEEK)
+      .memorySize(512)
+      .timeout(Duration.minutes(10))
+      .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
+      .environment(Map.of(
+        "TRANSLATION_LAMBDA_FUNCTION_NAME", lambdaAiServiceAlias.getFunctionName()
+      ))
+      .build();
+
+    PolicyStatement readPolicy1 = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParameter"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/batb/tx/*/config"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
+          .toList())
+      .build();
+
+    PolicyStatement readPolicy2 = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParametersByPath"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/batb/*/tokens"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
+          .toList())
+      .build();
+
+    lambda.getRole().attachInlinePolicy(
+      new Policy(this, "DonatorsReporterLambda" + "ParameterStorePolicy", PolicyProps.builder()
+        .statements(List.of(readPolicy1, readPolicy2))
+        .build())
+    );
+    lambda.getRole().attachInlinePolicy(
+      Policy.Builder.create(this, "DonatorsReporterLambda_InvokeAiServicesLambda")
+        .statements(List.of(
+          PolicyStatement.Builder.create()
+            .actions(List.of("lambda:InvokeFunction"))
+            .resources(List.of(lambdaAiServiceAlias.getFunctionArn()))
+            .build()
+        ))
+        .build()
+    );
+
+    final Alias lambdaAlias = createVersionAndUpdateAlias(lambda, "DonatorsReporterLambda");
   }
 
   private void customDomainForRestApi(final RestApi restApi) {
