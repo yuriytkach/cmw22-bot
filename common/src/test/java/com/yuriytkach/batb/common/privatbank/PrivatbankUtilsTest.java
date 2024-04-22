@@ -16,9 +16,13 @@ class PrivatbankUtilsTest {
 
   @ParameterizedTest
   @CsvSource({
-    "10.5, 1050",
-    "20.0, 2000",
-    "0.01, 1"
+    "0.00, 0",
+    "0.01, 1",
+    "0.10, 10",
+    "1.00, 100",
+    "1.01, 101",
+    "1, 100",
+    "1.1, 110",
   })
   void parseAmountShouldReturnCorrectValue(final String amount, final long expected) {
     assertThat(tested.parseAmount(amount)).isEqualTo(expected);

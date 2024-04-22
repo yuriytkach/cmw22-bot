@@ -9,7 +9,7 @@ import org.slf4j.MDC;
 
 import com.yuriytkach.batb.bsu.bank.BankStatusUpdater;
 import com.yuriytkach.batb.bsu.google.GSheetService;
-import com.yuriytkach.batb.bsu.google.SheetsFactory;
+import com.yuriytkach.batb.common.google.SheetsFactory;
 import com.yuriytkach.batb.common.BankAccount;
 import com.yuriytkach.batb.common.BankAccountStatus;
 import com.yuriytkach.batb.common.BankType;
