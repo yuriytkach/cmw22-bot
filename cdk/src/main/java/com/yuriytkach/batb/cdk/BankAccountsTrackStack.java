@@ -427,7 +427,8 @@ public class BankAccountsTrackStack extends Stack {
       .actions(List.of("ssm:GetParameter"))
       .resources(
         Stream.of(
-            "arn:aws:ssm:%s:%s:parameter/batb/tx/*/config"
+            "arn:aws:ssm:%s:%s:parameter/batb/tx/*/config",
+            "arn:aws:ssm:%s:%s:parameter/batb/tx/ignored-names"
           ).map(pattern -> pattern.formatted(
             Stack.of(this).getRegion(),
             Stack.of(this).getAccount()

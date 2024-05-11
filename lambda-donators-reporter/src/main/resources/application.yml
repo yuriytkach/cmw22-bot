@@ -1,3 +1,6 @@
+reporter:
+  month-before: 2
+
 txfetcher:
   privat:
     config-key: /batb/tx/privat/config
@@ -27,6 +30,11 @@ quarkus:
     log:
       console:
         darken: 1
+    aws:
+      devservices:
+        localstack:
+          init-completion-msg: 'SSM parameters created'
+          init-scripts-folder: '/home/yuriy/workspace/bank-accounts-track-bot/.local-scripts'
 
 "%test":
   quarkus:

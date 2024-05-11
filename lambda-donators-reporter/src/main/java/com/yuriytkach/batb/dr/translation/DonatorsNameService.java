@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,6 +31,7 @@ public class DonatorsNameService {
       .distinct()
       .toImmutableList();
     log.info("English names found: {}", englishNames.size());
+    log.debug("English names: {}", englishNames);
 
     if (englishNames.isEmpty()) {
       return donatorsWithAmounts;
@@ -43,6 +45,10 @@ public class DonatorsNameService {
   }
 
   private Map<String, String> mapTranslations(final List<String> englishNames, final String lambdaResponse) {
+    if (lambdaResponse.isBlank() || lambdaResponse.length() < 4) {
+      log.warn("No translations were received from Lambda");
+      return StreamEx.of(englishNames).mapToEntry(Function.identity()).distinctKeys().toImmutableMap();
+    }
     final String[] translations = lambdaResponse.substring(1, lambdaResponse.length()-1).split(",");
     if (translations.length != englishNames.size()) {
       log.error("Translations count mismatch: {} != {}", translations.length, englishNames.size());

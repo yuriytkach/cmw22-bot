@@ -1,3 +1,5 @@
+.local-scripts/
+
 # Gradle
 .gradle/
 build/

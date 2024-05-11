@@ -32,6 +32,9 @@ public class DonatorsReporterLambda implements RequestHandler<Object, Void> {
   @Inject
   DonatorsReporterProperties properties;
 
+  @Inject
+  DonatorsFilterMapper donatorsFilterMapper;
+
   @Override
   public Void handleRequest(final Object ignored, final Context context) {
     MDC.put("awsRequestId", context.getAwsRequestId());
@@ -47,11 +50,10 @@ public class DonatorsReporterLambda implements RequestHandler<Object, Void> {
       .mapToEntry(DonationTransaction::name, DonationTransaction::amountUah)
       .grouping(Collectors.summingLong(Long::valueOf));
 
-    log.debug("Donators with amounts before translate: {}", donatorsWithAmounts.size());
-    final Map<String, Long> finalDonators = donatorsNameService.translateEnglishNames(donatorsWithAmounts);
+    final Map<String, Long> finalDonators = donatorsFilterMapper.filterAndMapDonators(donatorsWithAmounts);
 
-    log.info("Donators with amounts after translate: {}", finalDonators.size());
-    log.debug("Donators with amounts after translate: {}", finalDonators);
+    log.info("Donators with amounts after filtering: {}", finalDonators.size());
+    log.debug("Donators with amounts after filtering: {}", finalDonators);
 
     return null;
   }
