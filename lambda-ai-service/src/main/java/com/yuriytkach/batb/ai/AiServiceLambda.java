@@ -20,6 +20,7 @@ public class AiServiceLambda implements RequestHandler<LambdaAiServiceRequest, S
   public String handleRequest(final LambdaAiServiceRequest request, final Context context) {
     MDC.put("awsRequestId", context.getAwsRequestId());
     log.info("AI Service Lambda. AWS Request ID: {}", context.getAwsRequestId());
+    log.debug("Request: {}", request);
 
     if ("translateNames".equals(request.service())) {
       log.info("Invoking AI service to translate names");

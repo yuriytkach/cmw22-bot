@@ -10,12 +10,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 public interface NameTranslationAiService {
 
   @SystemMessage("""
-    You're an expert in English to Ukrainian language translation.
+    You're an expert in English and Ukrainian languages.
     """)
   @UserMessage("""
-      Your task is to translate into Ukrainian language the provided coma-separated list of names in English.
-      Output only the Ukrainian names in the same order as original English names, in a single line with
-      all names coma-separated.
+      Your task is to transliterate Ukrainian names written in English letters and output them in Ukrainian letters.
+      Output only the Ukrainian names in the same order as original, in a single line with all names coma-separated.
       ---
       {names}
       ---
