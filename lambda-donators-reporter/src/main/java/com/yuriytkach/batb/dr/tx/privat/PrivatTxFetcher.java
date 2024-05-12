@@ -30,7 +30,7 @@ public class PrivatTxFetcher implements DonationTransactionFetcher {
   private final PrivatService privatService;
 
   @Override
-  public Set<DonationTransaction> fetchTransactions(final LocalDate startDate) {
+  public Set<DonationTransaction> fetchTransactions(final LocalDate startDate, final LocalDate endDate) {
     final Optional<String> configOpt = secretsReader.readSecret(props.configKey());
 
     if (configOpt.isEmpty()) {
@@ -47,14 +47,18 @@ public class PrivatTxFetcher implements DonationTransactionFetcher {
     }
 
     return parsedConfigOpt
-      .map(config -> readTxes(config, startDate))
+      .map(config -> readTxes(config, startDate, endDate))
       .orElseGet(() -> {
         log.error("Cannot read privat TXes");
         return Set.of();
       });
   }
 
-  private Set<DonationTransaction> readTxes(final PrivatTxFetcherConfig config, final LocalDate startDate) {
+  private Set<DonationTransaction> readTxes(
+    final PrivatTxFetcherConfig config,
+    final LocalDate startDate,
+    final LocalDate endDate
+  ) {
     log.info("Reading privat TXes for accounts: {} with token: {}", config.accounts(), config.tokenName());
     final List<BankToken> listOfTokens = bankAccessStorage.getListOfTokens(BankType.PRIVAT);
     final var privatToken = listOfTokens.stream()
@@ -71,7 +75,7 @@ public class PrivatTxFetcher implements DonationTransactionFetcher {
     } else {
       log.debug("Found privat token. Getting transactions...");
       return StreamEx.of(config.accounts())
-        .flatMap(account -> privatService.fetchTxesForAccount(account, privatToken.get(), startDate).stream())
+        .flatMap(account -> privatService.fetchTxesForAccount(account, privatToken.get(), startDate, endDate).stream())
         .toImmutableSet();
     }
   }

@@ -17,4 +17,6 @@ public interface BankAccessStorage {
 
   Optional<BankAccount> getStatsConfig();
 
+  Optional<BankAccount> getDonatorsConfig();
+
 }

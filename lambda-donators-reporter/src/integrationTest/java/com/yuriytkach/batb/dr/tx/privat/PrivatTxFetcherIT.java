@@ -80,7 +80,8 @@ class PrivatTxFetcherIT {
         )
     );
 
-    final Set<DonationTransaction> txes = privatTxFetcher.fetchTransactions(LocalDate.of(2024, 2, 1));
+    final Set<DonationTransaction> txes = privatTxFetcher.fetchTransactions(
+      LocalDate.of(2024, 2, 1), LocalDate.of(2024, 2, 28));
 
     assertThat(txes).containsExactlyInAnyOrder(
       DonationTransaction.builder()

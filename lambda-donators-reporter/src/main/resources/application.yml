@@ -1,5 +1,5 @@
 reporter:
-  month-before: 2
+  month-before: 1
 
 txfetcher:
   privat:
@@ -28,8 +28,12 @@ quarkus:
 "%dev":
   quarkus:
     log:
+      min-level: TRACE
       console:
         darken: 1
+      category:
+        "com.yuriytkach":
+          level: TRACE
     aws:
       devservices:
         localstack:

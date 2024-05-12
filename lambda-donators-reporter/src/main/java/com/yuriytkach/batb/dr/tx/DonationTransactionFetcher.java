@@ -5,6 +5,6 @@ import java.util.Set;
 
 public interface DonationTransactionFetcher {
 
-  Set<DonationTransaction> fetchTransactions(LocalDate startDate);
+  Set<DonationTransaction> fetchTransactions(LocalDate startDate, final LocalDate endDate);
 
 }

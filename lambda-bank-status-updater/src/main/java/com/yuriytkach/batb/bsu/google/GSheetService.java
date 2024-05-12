@@ -31,7 +31,7 @@ public class GSheetService {
   private final NumberFormat format = NumberFormat.getInstance(new Locale("uk", "UA"));
 
   public Optional<GSheetAccountData> readAccountStatus(final BankAccount account, final Sheets sheets) {
-    if (isAccountDataValid(account)) {
+    if (isAccountDataInvalid(account)) {
       log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
       return Optional.empty();
     }
@@ -79,7 +79,7 @@ public class GSheetService {
   }
 
   public Optional<GSheetStatsData> readStats(final BankAccount account, final Sheets sheets) {
-    if (isAccountDataValid(account)
+    if (isAccountDataInvalid(account)
     ) {
       log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
       return Optional.empty();
@@ -240,7 +240,7 @@ public class GSheetService {
     return amountUahValueRange;
   }
 
-  private boolean isAccountDataValid(final BankAccount account) {
+  private boolean isAccountDataInvalid(final BankAccount account) {
     return account.properties() == null
       || account.properties().isEmpty()
       || !account.properties().containsKey("sheetName");

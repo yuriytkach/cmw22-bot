@@ -30,6 +30,7 @@ public interface PrivatApi {
   TransactionsResponse transactions(
     @HeaderParam("token") String token,
     @QueryParam("startDate") String startDate,
+    @QueryParam("endDate") String endDate,
     @QueryParam("acc") String accountId,
     @QueryParam("followId") String followId,
     @QueryParam("limit") int limit

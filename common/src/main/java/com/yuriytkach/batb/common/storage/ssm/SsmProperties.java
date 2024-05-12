@@ -32,4 +32,7 @@ public interface SsmProperties {
 
   @WithDefault("gsheet/stats")
   String statsGsheet();
+
+  @WithDefault("gsheet/donators")
+  String donatorsGsheet();
 }

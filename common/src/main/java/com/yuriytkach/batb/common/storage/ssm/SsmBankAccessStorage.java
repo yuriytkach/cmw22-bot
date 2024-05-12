@@ -60,8 +60,6 @@ public class SsmBankAccessStorage implements BankAccessStorage {
   @CacheResult(cacheName = "ssm-registry-config")
   public Optional<BankAccount> getRegistryConfig() {
     final String path = ssmProperties.prefix() + ssmProperties.registryGsheet();
-    log.info("Getting registry config from SSM path: {}", path);
-
     return readBankAccountObject(path);
   }
 
@@ -69,8 +67,13 @@ public class SsmBankAccessStorage implements BankAccessStorage {
   @CacheResult(cacheName = "ssm-stats-config")
   public Optional<BankAccount> getStatsConfig() {
     final String path = ssmProperties.prefix() + ssmProperties.statsGsheet();
-    log.info("Getting stats config from SSM path: {}", path);
+    return readBankAccountObject(path);
+  }
 
+  @Override
+  @CacheResult(cacheName = "ssm-donators-config")
+  public Optional<BankAccount> getDonatorsConfig() {
+    final String path = ssmProperties.prefix() + ssmProperties.donatorsGsheet();
     return readBankAccountObject(path);
   }
 
@@ -101,6 +104,7 @@ public class SsmBankAccessStorage implements BankAccessStorage {
   }
 
   private Optional<BankAccount> readBankAccountObject(final String path) {
+    log.info("Getting bank account config from SSM path: {}", path);
     final var request = GetParameterRequest.builder()
       .name(path)
       .build();

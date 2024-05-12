@@ -17,6 +17,7 @@ import com.yuriytkach.batb.dr.tx.privat.api.Transaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import one.util.streamex.StreamEx;
 
 @Slf4j
 @ApplicationScoped
@@ -37,19 +38,24 @@ class PrivatService {
   Set<DonationTransaction> fetchTxesForAccount(
     final String account,
     final BankToken bankToken,
-    final LocalDate startDate
+    final LocalDate startDate,
+    final LocalDate endDate
   ) {
     log.debug("Fetching privat TXes for account: {} ...", account);
 
     final var startDateStr = privatbankUtils.formatDate(startDate);
+    final var endDateStr = privatbankUtils.formatDate(endDate);
 
-    final var result = readTransactions(bankToken.value(), startDateStr, account, null)
+    final var result = readTransactions(bankToken.value(), startDateStr, endDateStr, account, null)
       .filter(this::isCreditTransaction)
       .map(this::mapTx)
       .flatMap(Optional::stream)
       .collect(Collectors.toUnmodifiableSet());
 
     log.info("Mapped privat TXes for account {}: {}", account, result.size());
+    if (log.isTraceEnabled()) {
+      StreamEx.of(result).forEach(tx -> log.trace("Mapped TX: {}", tx));
+    }
 
     return result;
   }
@@ -57,16 +63,17 @@ class PrivatService {
   private Stream<Transaction> readTransactions(
     final String token,
     final String startDate,
+    final String endDate,
     final String account,
     final String followId
   ) {
-    final var response = privatApi.transactions(token, startDate, account, followId, LIMIT);
+    final var response = privatApi.transactions(token, startDate, endDate, account, followId, LIMIT);
     final Stream<Transaction> nextResponse;
     if (response == null || !"SUCCESS".equals(response.status())) {
       log.error("Failed to fetch privat TXes for account: {}. Response: {}", account, response);
       nextResponse = Stream.empty();
     } else if (response.existsNextPage()) {
-      nextResponse = readTransactions(token, startDate, account, response.nextPageId());
+      nextResponse = readTransactions(token, startDate, endDate, account, response.nextPageId());
     } else {
       nextResponse = Stream.empty();
     }
