@@ -26,6 +26,7 @@ public class MonoTokenTxFetcher implements DonationTransactionFetcher {
   private final MonoTokenTxFetcherProperties props;
   private final JsonReader jsonReader;
   private final MonoTokenService service;
+  private final MonoTokenPeriodDatesAdjuster periodDatesAdjuster;
 
   @Override
   public Set<DonationTransaction> fetchTransactions(final LocalDate startDate, final LocalDate endDate) {
@@ -63,8 +64,10 @@ public class MonoTokenTxFetcher implements DonationTransactionFetcher {
           client.clientId(),
           config.jars().size()
         );
-        return config.jars.stream()
-          .flatMap(jar -> service.readJarTxes(config.token(), jar, startDate, endDate).stream());
+
+        return periodDatesAdjuster.adjust(startDate, endDate).stream()
+          .flatMap(period -> config.jars().stream()
+            .flatMap(jar -> service.readJarTxes(config.token(), jar, period.startDate(), period.endDate()).stream()));
       })
       .orElseGet(() -> {
         log.error("Cannot read mono client info");

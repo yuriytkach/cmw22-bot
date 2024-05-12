@@ -51,8 +51,8 @@ class MonoTokenService {
     final LocalDate startDate,
     final LocalDate endDate
   ) {
-    log.debug("Fetching mono-token TXes for jar: {} ...", jar);
-    final var result = readTransactions(token, jar, toEpochMilli(startDate), toEpochMilli(endDate))
+    log.debug("Fetching mono-token TXes for jar: {} for dates: {} - {}", jar, startDate, endDate);
+    final var result = readTransactions(token, jar, toEpochMilli(startDate), toEpochMilli(endDate.plusDays(1)) - 1)
       .filter(this::isCreditTransaction)
       .map(this::mapTx)
       .flatMap(Optional::stream)
