@@ -1,20 +1,21 @@
 package com.yuriytkach.batb.dr.translation;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yuriytkach.batb.dr.Donator;
 import com.yuriytkach.batb.dr.translation.lambda.LambdaAiServiceRequest;
 import com.yuriytkach.batb.dr.translation.lambda.LambdaInvoker;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
 @Slf4j
@@ -25,8 +26,9 @@ public class DonatorsNameService {
   private final ObjectMapper objectMapper;
   private final LambdaInvoker lambdaInvoker;
 
-  public Map<String, Long> translateEnglishNames(final Map<String, Long> donatorsWithAmounts) {
-    final List<String> englishNames = StreamEx.of(donatorsWithAmounts.keySet())
+  public Collection<Donator> translateEnglishNames(final Set<Donator> donatorsWithAmounts) {
+    final List<String> englishNames = StreamEx.of(donatorsWithAmounts)
+      .map(Donator::name)
       .filter(name -> name.matches("\\w+.*"))
       .distinct()
       .toImmutableList();
@@ -60,18 +62,19 @@ public class DonatorsNameService {
       .toImmutableMap();
   }
 
-  private Map<String, Long> mapNames(
-    final Map<String, Long> donatorsWithAmounts,
-    final Map<String, String> translations
-  ) {
+  private Collection<Donator> mapNames(final Set<Donator> donators, final Map<String, String> translations) {
     if (translations.isEmpty()) {
       log.debug("No translations for names were found");
-      return donatorsWithAmounts;
+      return donators;
     }
 
-    return EntryStream.of(donatorsWithAmounts)
-      .mapKeys(name -> translations.getOrDefault(name, name))
-      .grouping(Collectors.summingLong(Long::valueOf));
+    return StreamEx.of(donators)
+      .map(donator -> new Donator(
+        translations.getOrDefault(donator.name(), donator.name()),
+        donator.amount(),
+        donator.count())
+      )
+      .toImmutableList();
   }
 
 

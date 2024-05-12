@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.api.services.sheets.v4.Sheets;
@@ -27,11 +28,13 @@ import com.yuriytkach.batb.common.BankAccount;
 import com.yuriytkach.batb.common.google.SheetsCommonService;
 import com.yuriytkach.batb.common.google.SheetsFactory;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
+import com.yuriytkach.batb.dr.Donator;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import one.util.streamex.EntryStream;
+import one.util.streamex.StreamEx;
 
 @Slf4j
 @ApplicationScoped
@@ -55,7 +58,7 @@ public class DonatorsTableUpdater {
   @Inject
   GSheetDateColumnCalculator gSheetDateColumnCalculator;
 
-  public void updateDonatorsTable(final Map<String, Long> donators) {
+  public void updateDonatorsTable(final Set<Donator> donators) {
     bankAccessStorage.getDonatorsConfig().ifPresentOrElse(
       statsConfig -> sheetsFactory.getSheetsService()
         .ifPresent(sheets -> updateDonatorsSheets(statsConfig, sheets, donators)),
@@ -66,10 +69,10 @@ public class DonatorsTableUpdater {
   private void updateDonatorsSheets(
     final BankAccount account,
     final Sheets sheets,
-    final Map<String, Long> donators
+    final Set<Donator> donators
   ) {
     if (isAccountDataInvalid(account)) {
-      log.error("GSheet Account has no properties or sheetName is not defined: {}", account);;
+      log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
     }
 
     final String sheetName = account.properties().get("sheetName");
@@ -90,24 +93,33 @@ public class DonatorsTableUpdater {
     final String namesCol,
     final String trackCol,
     final String trackStartCol,
-    final Map<String, Long> donators
+    final Set<Donator> donators
   ) {
     log.info("Tracking donations in sheet: {}, names column: {}, track column: {}", sheetName, namesCol, trackCol);
 
     final var allDonators = findAllDonators(sheets, sheetDocId, sheetName, namesCol);
     log.info("Found all donators: {}", allDonators.size());
 
-    final var maxDonatorsRow = allDonators.values().stream().mapToInt(Integer::intValue).max().orElse(1000);
+    final var maxDonatorsRow = allDonators.values().stream().mapToInt(Integer::intValue).max().orElse(100000);
     log.debug("Max donators row: {}", maxDonatorsRow);
 
-    final var foundDonators = EntryStream.of(donators)
-      .filterKeys(allDonators::containsKey)
-      .mapKeys(allDonators::get)
+    if (allDonators.isEmpty() || maxDonatorsRow == 100000) {
+      log.error("Cannot work with sheets without donators data");
+      return;
+    }
+
+    final var foundDonators = StreamEx.of(donators)
+      .filter(donator -> allDonators.containsKey(donator.name()))
+      .mapToEntry(donator -> allDonators.get(donator.name()))
+      .invert()
       .toImmutableMap();
     log.info("Existing donators found: {}", foundDonators.size());
 
-    final var newDonators = EntryStream.of(donators)
-      .filterKeys(not(allDonators::containsKey))
+    final AtomicInteger newDonatorsRow = new AtomicInteger(maxDonatorsRow);
+    final var newDonators = StreamEx.of(donators)
+      .filter(not(donator -> allDonators.containsKey(donator.name())))
+      .mapToEntry(ignored -> newDonatorsRow.incrementAndGet())
+      .invert()
       .toImmutableMap();
     log.info("New donators found: {}", newDonators.size());
     log.debug("New donators: {}", newDonators);
@@ -115,18 +127,13 @@ public class DonatorsTableUpdater {
     sheetsCommonService.getSheetIdByName(sheets, sheetDocId, sheetName).ifPresentOrElse(
       sheetId -> {
         log.trace("Sheet ID found: {}", sheetId);
-        final AtomicInteger newDonatorsRow = new AtomicInteger(maxDonatorsRow);
         final var newNamesCells = EntryStream.of(newDonators)
-          .sorted(Map.Entry.comparingByKey())
-          .mapValues(ignored -> newDonatorsRow.incrementAndGet())
-          .invert()
+          .mapValues(Donator::name)
           .toImmutableMap();
 
-        newDonatorsRow.set(maxDonatorsRow);
-        final var donationCells = EntryStream.of(newDonators)
-          .sorted(Map.Entry.comparingByKey())
-          .mapKeys(ignored -> newDonatorsRow.incrementAndGet())
-          .append(foundDonators)
+        final var donationCells = EntryStream.of(foundDonators)
+          .append(newDonators)
+          .mapValues(Donator::amount)
           .toImmutableMap();
 
         updateCells(sheets, sheetDocId, sheetId, donationCells, trackCol, newNamesCells, namesCol, trackStartCol);
@@ -151,7 +158,12 @@ public class DonatorsTableUpdater {
       final ValueRange response = sheets.spreadsheets().values()
         .get(sheetDocId, range)
         .execute();
+      if (response == null || response.getValues() == null || response.getValues().isEmpty()) {
+        log.warn("No names found in range: {}", range);
+        return Map.of();
+      }
       return EntryStream.of(response.getValues())
+        .filterValues(list -> !list.isEmpty() && list.getFirst() != null && !list.getFirst().toString().isBlank())
         .mapValues(list -> list.getFirst().toString())
         .mapKeys(row -> row + NAMES_START_ROW)
         .invert()

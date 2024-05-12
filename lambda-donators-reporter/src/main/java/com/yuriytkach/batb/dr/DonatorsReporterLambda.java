@@ -3,15 +3,13 @@ package com.yuriytkach.batb.dr;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.slf4j.MDC;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.yuriytkach.batb.dr.gsheet.DonatorsTableUpdater;
-import com.yuriytkach.batb.dr.tx.DonationTransaction;
 import com.yuriytkach.batb.dr.tx.DonationTransactionFetcher;
 
 import jakarta.enterprise.inject.Instance;
@@ -49,16 +47,19 @@ public class DonatorsReporterLambda implements RequestHandler<Object, Void> {
 
     log.debug("Fetching transactions in date range: {} - {}", startDate, endDate);
 
-    final Map<String, Long> donatorsWithAmounts = StreamEx.of(txFetchers.stream())
+    final Collection<Donator> donatorsWithAmounts = StreamEx.of(txFetchers.stream())
       .map(fetcher -> fetcher.fetchTransactions(startDate, endDate))
       .flatMap(Collection::stream)
-      .mapToEntry(DonationTransaction::name, DonationTransaction::amountUah)
-      .grouping(Collectors.summingLong(Long::valueOf));
+      .map(tx -> new Donator(tx.name(), tx.amountUah(), 1))
+      .toImmutableList();
 
-    final Map<String, Long> finalDonators = donatorsFilterMapper.filterAndMapDonators(donatorsWithAmounts);
+    final Set<Donator> mappedDonators = donatorsFilterMapper.mapAndGroupDonators(donatorsWithAmounts);
+    log.debug("Donators after mapping: {}", mappedDonators.size());
 
-    log.info("Donators with amounts after filtering: {}", finalDonators.size());
-    log.debug("Donators with amounts after filtering: {}", finalDonators);
+    final Set<Donator> finalDonators = donatorsFilterMapper.filterDonatorsByAmount(mappedDonators);
+
+    log.info("Donators after filtering: {}", finalDonators.size());
+    log.debug("Donators after filtering: {}", finalDonators);
 
     donatorsTableUpdater.updateDonatorsTable(finalDonators);
     return null;
