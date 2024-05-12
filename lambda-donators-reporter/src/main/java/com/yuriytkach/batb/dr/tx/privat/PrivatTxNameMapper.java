@@ -56,18 +56,23 @@ class PrivatTxNameMapper {
   static class DescriptionNameResolver implements NameResolver {
     private static final Set<Pattern> PATTERNS = Set.of(
       compile(".*\\sвнески.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
-      compile("Благодійний внесок.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
-      compile("Сплата.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
+      compile("благо.* внес.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
+      compile("(.плата|збір|допомога|пожертва).*, "
+        + "(?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
+      compile("на.*(зсу|бпла|дрон|рації|перемог.).*, "
+        + "(?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
       compile(".*благодійність, (?<sname>[^\\p{IsLatin}]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
-      compile("\\d{4}.*Послуги: (?<sname>\\w+),?\\s(?<fname>\\w+).*"),
-      compile("\\d{4}.*Перекази: вiд (?<sname>\\w+)\\s(?<fname>\\w+).*"),
-      compile("\\d{4}.*Зарахування переказу: (?<sname>\\w+)\\s(?<fname>\\w+).*")
+      compile("\\d{4}.*послуги: (?<sname>\\w+),?\\s(?<fname>\\w+).*"),
+      compile("\\d{4}.*інше: від (?<sname>\\w+),?\\s(?<fname>\\w+).*"),
+      compile("\\d{4}.*iнше: вiд (?<sname>\\w+),?\\s(?<fname>\\w+).*"),
+      compile("\\d{4}.*перекази: вiд (?<sname>\\w+)\\s(?<fname>\\w+).*"),
+      compile("\\d{4}.*зарахування переказу: (?<sname>\\w+)\\s(?<fname>\\w+).*")
     );
 
     @Override
     public Optional<String> resolveName(final Transaction tx) {
       return PATTERNS.stream()
-        .map(pattern -> resolveNameFromPattern(pattern, tx.description()))
+        .map(pattern -> resolveNameFromPattern(pattern, tx.description().toLowerCase(Locale.getDefault())))
         .flatMap(Optional::stream)
         .findFirst();
     }

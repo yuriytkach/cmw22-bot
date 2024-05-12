@@ -95,8 +95,8 @@ class PrivatService {
       .name(name)
       .build());
 
-    if (log.isTraceEnabled() && rez.isEmpty()) {
-      log.trace("Cannot map name from privat TX: {}", tx);
+    if (log.isDebugEnabled() && rez.isEmpty()) {
+      log.debug("Cannot map name from privat TX: {}", tx);
     }
 
     return rez;

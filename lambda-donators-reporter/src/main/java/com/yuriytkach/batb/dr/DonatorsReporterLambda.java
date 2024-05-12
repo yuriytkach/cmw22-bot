@@ -50,16 +50,11 @@ public class DonatorsReporterLambda implements RequestHandler<Object, Void> {
     final Collection<Donator> donatorsWithAmounts = StreamEx.of(txFetchers.stream())
       .map(fetcher -> fetcher.fetchTransactions(startDate, endDate))
       .flatMap(Collection::stream)
-      .map(tx -> new Donator(tx.name(), tx.amountUah(), 1))
+      .map(tx -> new Donator(tx.name(), tx.amountUah(), 1, tx.date()))
       .toImmutableList();
 
-    final Set<Donator> mappedDonators = donatorsFilterMapper.mapAndGroupDonators(donatorsWithAmounts);
-    log.debug("Donators after mapping: {}", mappedDonators.size());
-
-    final Set<Donator> finalDonators = donatorsFilterMapper.filterDonatorsByAmount(mappedDonators);
-
-    log.info("Donators after filtering: {}", finalDonators.size());
-    log.debug("Donators after filtering: {}", finalDonators);
+    final Set<Donator> finalDonators = donatorsFilterMapper.mapAndGroupDonators(donatorsWithAmounts);
+    log.debug("Donators after mapping: {}", finalDonators.size());
 
     donatorsTableUpdater.updateDonatorsTable(finalDonators);
     return null;

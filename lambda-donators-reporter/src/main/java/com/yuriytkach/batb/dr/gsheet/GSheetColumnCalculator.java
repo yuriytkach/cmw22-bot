@@ -7,7 +7,7 @@ import java.util.stream.IntStream;
 import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
-class GSheetDateColumnCalculator {
+class GSheetColumnCalculator {
 
   // Function to calculate the Excel column ID based on the starting column and a target date
   String calculateColumnId(final String startColumn, final LocalDate startDate, final LocalDate endDate) {
@@ -18,13 +18,13 @@ class GSheetDateColumnCalculator {
   }
 
   // Helper method to convert a column string to its corresponding index number
-  private int columnToIndex(final String column) {
+  int columnToIndex(final String column) {
     return IntStream.range(0, column.length())
       .reduce(0, (index, i) -> index * 26 + (column.charAt(i) - 'A' + 1));
   }
 
   // Helper method to convert an index number back to a column
-  private String indexToColumn(final int index) {
+  String indexToColumn(final int index) {
     final StringBuilder column = new StringBuilder();
     IntStream.iterate(index, i -> i > 0, i -> (i - 1) / 26)
       .map(i -> (i - 1) % 26)

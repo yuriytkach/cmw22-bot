@@ -12,6 +12,9 @@ public interface DonatorsReporterProperties {
   @WithDefault("50000")
   long minAmountCents();
 
+  @WithDefault("3")
+  int minCount();
+
   @WithDefault("/batb/tx/ignored-names")
   String ignoredDonatorsKey();
 

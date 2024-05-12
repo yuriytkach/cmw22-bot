@@ -7,9 +7,9 @@ import java.time.LocalDate;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-class GSheetDateColumnCalculatorTest {
+class GSheetColumnCalculatorTest {
 
-  private final GSheetDateColumnCalculator tested = new GSheetDateColumnCalculator();
+  private final GSheetColumnCalculator tested = new GSheetColumnCalculator();
 
   @ParameterizedTest
   @CsvSource({

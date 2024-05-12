@@ -1,47 +1,39 @@
 package com.yuriytkach.batb.dr.gsheet;
 
-import static java.util.function.Predicate.not;
-
 import java.time.Clock;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.api.services.sheets.v4.Sheets;
-import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
-import com.google.api.services.sheets.v4.model.CellData;
-import com.google.api.services.sheets.v4.model.CellFormat;
 import com.google.api.services.sheets.v4.model.Color;
-import com.google.api.services.sheets.v4.model.ExtendedValue;
-import com.google.api.services.sheets.v4.model.GridCoordinate;
-import com.google.api.services.sheets.v4.model.GridRange;
-import com.google.api.services.sheets.v4.model.RepeatCellRequest;
-import com.google.api.services.sheets.v4.model.Request;
-import com.google.api.services.sheets.v4.model.RowData;
-import com.google.api.services.sheets.v4.model.UpdateCellsRequest;
-import com.google.api.services.sheets.v4.model.ValueRange;
 import com.yuriytkach.batb.common.BankAccount;
 import com.yuriytkach.batb.common.google.SheetsCommonService;
 import com.yuriytkach.batb.common.google.SheetsFactory;
 import com.yuriytkach.batb.common.storage.BankAccessStorage;
 import com.yuriytkach.batb.dr.Donator;
+import com.yuriytkach.batb.dr.DonatorsFilterMapper;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import one.util.streamex.EntryStream;
-import one.util.streamex.StreamEx;
 
 @Slf4j
 @ApplicationScoped
 public class DonatorsTableUpdater {
 
-  public static final int NAMES_START_ROW = 3;
+  public static final int DONATIONS_SKIP_ROWS = 2;
+  public static final String DONATIONS_SORT_COL = "B";
+
+  public static final int TOP_DONATORS_SKIP_ROWS = 1;
+  public static final String TOP_DONATORS_SORT_COL = "B";
+
   public static final int TRACK_MONTH_ADJUST_FOR_PREV = -1;
+  public static final Color ORANGE_COLOR = new Color()
+    .setRed(1.0f)
+    .setGreen(0.8f)
+    .setBlue(0.6f);
 
   @Inject
   Clock clock;
@@ -50,13 +42,25 @@ public class DonatorsTableUpdater {
   BankAccessStorage bankAccessStorage;
 
   @Inject
+  DonatorsFilterMapper donatorsFilterMapper;
+
+  @Inject
   SheetsFactory sheetsFactory;
 
   @Inject
   SheetsCommonService sheetsCommonService;
 
   @Inject
-  GSheetDateColumnCalculator gSheetDateColumnCalculator;
+  GSheetColumnCalculator gSheetColumnCalculator;
+
+  @Inject
+  GSheetExistingDonatorsFinder gSheetExistingDonatorsFinder;
+
+  @Inject
+  GSheetDonationsUpdateRequestsPreparer gSheetDonationsUpdateRequestsPreparer;
+
+  @Inject
+  GSheetTopDonatorsUpdateRequestsPreparer gSheetTopDonatorsUpdateRequestsPreparer;
 
   public void updateDonatorsTable(final Set<Donator> donators) {
     bankAccessStorage.getDonatorsConfig().ifPresentOrElse(
@@ -75,14 +79,60 @@ public class DonatorsTableUpdater {
       log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
     }
 
+    trackDonationsWithAmounts(account, sheets, donators);
+    trackFrequentDonators(account, sheets, donators);
+  }
+
+  private void trackFrequentDonators(final BankAccount account, final Sheets sheets, final Set<Donator> donators) {
+    final Set<Donator> finalDonators = donatorsFilterMapper.filterDonatorsByCount(donators);
+
+    log.info("Donators after filtering: {}", finalDonators.size());
+    log.debug("Donators after filtering: {}", finalDonators);
+
+    final String sheetDocId = account.id();
+    final String sheetNameTop = account.properties().get("sheetNameTop");
+
+    log.info("Tracking frequent donators in sheet: {}", sheetNameTop);
+
+    sheetsCommonService.getSheetIdByName(sheets, sheetDocId, sheetNameTop)
+      .ifPresentOrElse(
+        sheetId -> gSheetExistingDonatorsFinder
+          .findAndMatchDonators(sheets, sheetDocId, sheetNameTop, "A", TOP_DONATORS_SKIP_ROWS, finalDonators, 4)
+          .ifPresent(matchedDonators -> {
+            final var requests = gSheetTopDonatorsUpdateRequestsPreparer.prepareRequests(
+              sheetId, matchedDonators
+            );
+            if (!requests.isEmpty()) {
+              sheetsCommonService.executeBatchGSheetRequests(sheets, sheetDocId, requests);
+            }
+            sheetsCommonService.sortSheetByColumn(
+              sheets, sheetDocId, sheetId, TOP_DONATORS_SORT_COL, TOP_DONATORS_SKIP_ROWS);
+          }),
+        () -> log.warn("Sheet ID not found for sheet: {}", sheetNameTop)
+      );
+
+    log.info("Donations tracking completed in sheet: {}", sheetNameTop);
+  }
+
+  private void trackDonationsWithAmounts(final BankAccount account, final Sheets sheets, final Set<Donator> donators) {
+    final Set<Donator> finalDonators = donatorsFilterMapper.filterDonatorsByAmount(donators);
+
+    log.info("Donators after filtering: {}", finalDonators.size());
+    log.debug("Donators after filtering: {}", finalDonators);
+
     final String sheetName = account.properties().get("sheetName");
     final String namesCol = account.properties().get("namesCol");
     final String monthColStart = account.properties().get("monthColStart");
 
-    findTrackColumnForPrevMonth(sheets, account.id(), sheetName, monthColStart)
+    sheetsCommonService.getSheetIdByName(sheets, account.id(), sheetName)
       .ifPresentOrElse(
-        trackCol -> trackDonations(sheets, account.id(), sheetName, namesCol, trackCol, monthColStart, donators),
-        () -> log.warn("No tracking column was found")
+        sheetId -> findTrackColumnForPrevMonth(sheets, account.id(), sheetName, monthColStart)
+          .ifPresentOrElse(
+            trackCol -> trackDonations(
+              sheets, account.id(), sheetName, sheetId, namesCol, trackCol, monthColStart, finalDonators),
+            () -> log.warn("No tracking column was found")
+          ),
+        () -> log.warn("Sheet ID not found for sheet: {}", sheetName)
       );
   }
 
@@ -90,6 +140,7 @@ public class DonatorsTableUpdater {
     final Sheets sheets,
     final String sheetDocId,
     final String sheetName,
+    final int sheetId,
     final String namesCol,
     final String trackCol,
     final String trackStartCol,
@@ -97,82 +148,19 @@ public class DonatorsTableUpdater {
   ) {
     log.info("Tracking donations in sheet: {}, names column: {}, track column: {}", sheetName, namesCol, trackCol);
 
-    final var allDonators = findAllDonators(sheets, sheetDocId, sheetName, namesCol);
-    log.info("Found all donators: {}", allDonators.size());
+    gSheetExistingDonatorsFinder
+      .findAndMatchDonators(sheets, sheetDocId, sheetName, namesCol, DONATIONS_SKIP_ROWS, donators, 1)
+      .ifPresent(matchedDonators -> {
+        final var requests = gSheetDonationsUpdateRequestsPreparer.prepareRequests(
+          sheetId, matchedDonators, namesCol, trackStartCol, trackCol
+        );
+        if (!requests.isEmpty()) {
+          sheetsCommonService.executeBatchGSheetRequests(sheets, sheetDocId, requests);
+        }
+        sheetsCommonService.sortSheetByColumn(sheets, sheetDocId, sheetId, DONATIONS_SORT_COL, DONATIONS_SKIP_ROWS);
+      });
 
-    final var maxDonatorsRow = allDonators.values().stream().mapToInt(Integer::intValue).max().orElse(100000);
-    log.debug("Max donators row: {}", maxDonatorsRow);
-
-    if (allDonators.isEmpty() || maxDonatorsRow == 100000) {
-      log.error("Cannot work with sheets without donators data");
-      return;
-    }
-
-    final var foundDonators = StreamEx.of(donators)
-      .filter(donator -> allDonators.containsKey(donator.name()))
-      .mapToEntry(donator -> allDonators.get(donator.name()))
-      .invert()
-      .toImmutableMap();
-    log.info("Existing donators found: {}", foundDonators.size());
-
-    final AtomicInteger newDonatorsRow = new AtomicInteger(maxDonatorsRow);
-    final var newDonators = StreamEx.of(donators)
-      .filter(not(donator -> allDonators.containsKey(donator.name())))
-      .mapToEntry(ignored -> newDonatorsRow.incrementAndGet())
-      .invert()
-      .toImmutableMap();
-    log.info("New donators found: {}", newDonators.size());
-    log.debug("New donators: {}", newDonators);
-
-    sheetsCommonService.getSheetIdByName(sheets, sheetDocId, sheetName).ifPresentOrElse(
-      sheetId -> {
-        log.trace("Sheet ID found: {}", sheetId);
-        final var newNamesCells = EntryStream.of(newDonators)
-          .mapValues(Donator::name)
-          .toImmutableMap();
-
-        final var donationCells = EntryStream.of(foundDonators)
-          .append(newDonators)
-          .mapValues(Donator::amount)
-          .toImmutableMap();
-
-        updateCells(sheets, sheetDocId, sheetId, donationCells, trackCol, newNamesCells, namesCol, trackStartCol);
-
-        sheetsCommonService.sortSheetByColumn(sheets, sheetDocId, sheetId, "B", 2);
-      },
-      () -> log.warn("Sheet ID not found for sheet: {}", sheetName)
-    );
-
-    log.info("Donations tracking completed");
-  }
-
-  private Map<String, Integer> findAllDonators(
-    final Sheets sheets,
-    final String sheetDocId,
-    final String sheetName,
-    final String namesCol
-  ) {
-    try {
-      final String range = "'%s'!%s%d:%s".formatted(sheetName, namesCol, NAMES_START_ROW, namesCol);
-      log.debug("Reading all names from range: {}", range);
-      final ValueRange response = sheets.spreadsheets().values()
-        .get(sheetDocId, range)
-        .execute();
-      if (response == null || response.getValues() == null || response.getValues().isEmpty()) {
-        log.warn("No names found in range: {}", range);
-        return Map.of();
-      }
-      return EntryStream.of(response.getValues())
-        .filterValues(list -> !list.isEmpty() && list.getFirst() != null && !list.getFirst().toString().isBlank())
-        .mapValues(list -> list.getFirst().toString())
-        .mapKeys(row -> row + NAMES_START_ROW)
-        .invert()
-        .distinctKeys()
-        .toImmutableMap();
-    } catch (final Exception ex) {
-      log.error("Failed to read data from Google Sheets: {}", ex.getMessage(), ex);
-      return Map.of();
-    }
+    log.info("Donations tracking completed in sheet: {}", sheetName);
   }
 
   private Optional<String> findTrackColumnForPrevMonth(
@@ -183,7 +171,7 @@ public class DonatorsTableUpdater {
   ) {
     return sheetsCommonService.readDateCell(sheets, sheetDocId, sheetName, monthColStart, 1).map(startDate -> {
       log.info("Tracking start date: {}", startDate);
-      final String endTrackCol = gSheetDateColumnCalculator.calculateColumnId(
+      final String endTrackCol = gSheetColumnCalculator.calculateColumnId(
         monthColStart, startDate, LocalDate.now(clock).minusMonths(TRACK_MONTH_ADJUST_FOR_PREV)
       );
       log.debug("Found tracking end column: {}", endTrackCol);
@@ -200,64 +188,9 @@ public class DonatorsTableUpdater {
       || !account.properties().containsKey("sheetName");
   }
 
-  public void updateCells(
-    final Sheets sheetsService,
-    final String sheetDocId,
-    final int sheetId,
-    final Map<Integer, Long> values,
-    final String valuesColumn,
-    final Map<Integer, String> names,
-    final String namesColumn,
-    final String trackStartColumn
-  ) {
-    try {
-      final List<Request> requests = new ArrayList<>();
+  record ProcessedDonators(
+    Map<ExistingDonator, Donator> foundDonators,
+    Map<Integer, Donator> newDonators
+  ) { }
 
-      // Determine column index based on column letter (e.g., 'A' -> 0)
-      final int valueColumnIndex = valuesColumn.charAt(0) - 'A';
-      final int namesColumnIndex = namesColumn.charAt(0) - 'A';
-
-      names.forEach((rowIndex, name) -> requests.add(new Request().setUpdateCells(new UpdateCellsRequest()
-        .setStart(new GridCoordinate().setSheetId(sheetId).setRowIndex(rowIndex - 1).setColumnIndex(namesColumnIndex))
-        .setRows(List.of(new RowData().setValues(List.of(
-          new CellData().setUserEnteredValue(new ExtendedValue().setStringValue(name)),
-          new CellData().setUserEnteredValue(new ExtendedValue()
-            .setFormulaValue("=SUM(%s%d:%d)".formatted(trackStartColumn, rowIndex, rowIndex)))
-        ))))
-        .setFields("userEnteredValue"))
-      ));
-
-      values.forEach((rowIndex, value) -> requests.add(new Request().setUpdateCells(new UpdateCellsRequest()
-        .setStart(new GridCoordinate().setSheetId(sheetId).setRowIndex(rowIndex - 1).setColumnIndex(valueColumnIndex))
-        .setRows(List.of(new RowData().setValues(List.of(
-          new CellData().setUserEnteredValue(new ExtendedValue().setNumberValue((double) value / 100))
-        ))))
-        .setFields("userEnteredValue"))
-      ));
-
-      EntryStream.of(values)
-        .mapValues(ignored -> valueColumnIndex)
-        .append(EntryStream.of(names).mapValues(ignored -> namesColumnIndex))
-        .forKeyValue((rowIndex, colIndex) -> requests.add(new Request().setRepeatCell(new RepeatCellRequest()
-          .setRange(new GridRange()
-            .setSheetId(sheetId)
-            .setStartRowIndex(rowIndex - 1)
-            .setEndRowIndex(rowIndex)
-            .setStartColumnIndex(colIndex)
-            .setEndColumnIndex(colIndex + 1))
-          .setCell(new CellData()
-            .setUserEnteredFormat(new CellFormat()
-              .setBackgroundColor(new Color()
-                .setRed(1.0f)
-                .setGreen(0.8f)
-                .setBlue(0.6f))))
-          .setFields("userEnteredFormat.backgroundColor")
-        )));
-
-      final BatchUpdateSpreadsheetRequest batchRequest = new BatchUpdateSpreadsheetRequest().setRequests(requests);
-      sheetsService.spreadsheets().batchUpdate(sheetDocId, batchRequest).execute();
-    } catch (final Exception ex) {
-      log.error("Failed to write data to Google Sheets: {}", ex.getMessage(), ex);
-    }
-  }
 }

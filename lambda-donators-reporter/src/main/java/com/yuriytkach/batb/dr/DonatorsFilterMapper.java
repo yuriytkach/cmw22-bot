@@ -3,6 +3,7 @@ package com.yuriytkach.batb.dr;
 import static java.util.function.Predicate.not;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -16,7 +17,7 @@ import one.util.streamex.StreamEx;
 
 @Slf4j
 @ApplicationScoped
-class DonatorsFilterMapper {
+public class DonatorsFilterMapper {
 
   @Inject
   DonatorsReporterProperties properties;
@@ -26,6 +27,22 @@ class DonatorsFilterMapper {
 
   @Inject
   SecretsReader secretsReader;
+
+  public Set<Donator> filterDonatorsByAmount(final Set<Donator> groupedDonators) {
+    final var filtered = StreamEx.of(groupedDonators)
+      .filter(donator -> donator.amount() >= properties.minAmountCents())
+      .toImmutableSet();
+    log.debug("Donators with amounts >{} : {}", properties.minAmountCents() / 100, filtered.size());
+    return filtered;
+  }
+
+  public Set<Donator> filterDonatorsByCount(final Set<Donator> groupedDonators) {
+    final var filtered = StreamEx.of(groupedDonators)
+      .filter(donator -> donator.count() >= properties.minCount())
+      .toImmutableSet();
+    log.debug("Donators with count >{} : {}", properties.minCount(), filtered.size());
+    return filtered;
+  }
 
   Set<Donator> mapAndGroupDonators(final Collection<Donator> donatorsPerTransaction) {
     log.debug("Donators before mapping/filtering: {}", donatorsPerTransaction.size());
@@ -42,17 +59,14 @@ class DonatorsFilterMapper {
       .orElse(uniqueTranslatedDonators);
   }
 
-  Set<Donator> filterDonatorsByAmount(final Set<Donator> groupedDonators) {
-    final var filteredByAmount = StreamEx.of(groupedDonators)
-      .filter(donator -> donator.amount() >= properties.minAmountCents())
-      .toImmutableSet();
-    log.debug("Donators with amounts >{} : {}", properties.minAmountCents() / 100, filteredByAmount.size());
-    return filteredByAmount;
-  }
-
   private Set<Donator> groupDonatorsByName(final Collection<Donator> donators) {
     return StreamEx.of(StreamEx.of(donators).groupingBy(Donator::name).values())
-      .map(group -> new Donator(group.getFirst().name(), group.stream().mapToLong(Donator::amount).sum(), group.size()))
+      .map(group -> new Donator(
+        group.getFirst().name(),
+        group.stream().mapToLong(Donator::amount).sum(),
+        group.stream().mapToInt(Donator::count).sum(),
+        group.stream().map(Donator::lastTxDateTime).max(Comparator.naturalOrder()).orElseThrow()
+      ))
       .toImmutableSet();
   }
 

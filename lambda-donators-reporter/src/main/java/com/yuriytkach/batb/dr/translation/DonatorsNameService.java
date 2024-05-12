@@ -72,8 +72,9 @@ public class DonatorsNameService {
       .map(donator -> new Donator(
         translations.getOrDefault(donator.name(), donator.name()),
         donator.amount(),
-        donator.count())
-      )
+        donator.count(),
+        donator.lastTxDateTime()
+      ))
       .toImmutableList();
   }
 
