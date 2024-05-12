@@ -3,10 +3,10 @@ package com.yuriytkach.batb.dr.gsheet;
 import static java.util.function.Predicate.not;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.ValueRange;
@@ -50,7 +50,13 @@ class GSheetExistingDonatorsFinder {
     log.debug("Max donators row in {}: {}", sheetName, maxDonatorsRow);
 
     final var allDonatorsMap = StreamEx.of(allDonators)
-      .toMap(ExistingDonator::name, Function.identity());
+      .flatMapToEntry(donator -> Map.of(
+        Optional.of(donator.name()), donator,
+        donator.invertName(), donator
+      ))
+      .flatMapKeys(Optional::stream)
+      .distinctKeys()
+      .toImmutableMap();
 
     final var foundDonators = StreamEx.of(donators)
       .filter(donator -> allDonatorsMap.containsKey(donator.name()))
