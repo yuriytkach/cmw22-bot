@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 class PrivatTxNameMapper {
 
-  private final Instance<NameResolver> nameResolvers;
+  private final Instance<PrivatNameResolver> nameResolvers;
 
   Optional<String> mapDonatorName(final Transaction tx) {
     return nameResolvers.stream()
@@ -30,7 +30,7 @@ class PrivatTxNameMapper {
       .findFirst();
   }
 
-  interface NameResolver {
+  interface PrivatNameResolver {
     Optional<String> resolveName(final Transaction tx);
 
     default Optional<String> resolveNameFromPattern(final Pattern pattern, final String value) {
@@ -53,7 +53,7 @@ class PrivatTxNameMapper {
   }
 
   @ApplicationScoped
-  static class DescriptionNameResolver implements NameResolver {
+  static final class DescriptionNameResolver implements PrivatNameResolver {
     private static final Set<Pattern> PATTERNS = Set.of(
       compile(".*\\sвнески.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
       compile("благо.* внес.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
@@ -79,7 +79,7 @@ class PrivatTxNameMapper {
   }
 
   @ApplicationScoped
-  static class ContrAgentNameResolver implements NameResolver {
+  static final class ContrAgentNameResolver implements PrivatNameResolver {
     private static final Pattern PATTERN_1 = compile(
       "(?<sname>[^\\p{IsLatin}]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+");
 

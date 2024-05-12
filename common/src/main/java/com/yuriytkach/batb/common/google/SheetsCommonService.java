@@ -9,7 +9,6 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import com.google.api.services.sheets.v4.Sheets;
@@ -28,7 +27,6 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
-import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 
 @Slf4j
@@ -85,17 +83,17 @@ public class SheetsCommonService {
 
   public List<Request> createSetCellColorRequests(
     final int sheetId,
-    final Map<Integer, Integer> cellsForColor,
+    final List<Cell> cellsForColor,
     final Color color
   ) {
-    return EntryStream.of(cellsForColor)
-      .mapKeyValue((rowIndex, colIndex) -> new Request().setRepeatCell(new RepeatCellRequest()
+    return StreamEx.of(cellsForColor)
+      .map(cell -> new Request().setRepeatCell(new RepeatCellRequest()
         .setRange(new GridRange()
           .setSheetId(sheetId)
-          .setStartRowIndex(rowIndex - 1)
-          .setEndRowIndex(rowIndex)
-          .setStartColumnIndex(colIndex)
-          .setEndColumnIndex(colIndex + 1))
+          .setStartRowIndex(cell.row() - 1)
+          .setEndRowIndex(cell.row())
+          .setStartColumnIndex(cell.col())
+          .setEndColumnIndex(cell.col() + 1))
         .setCell(new CellData().setUserEnteredFormat(new CellFormat().setBackgroundColor(color)))
         .setFields("userEnteredFormat.backgroundColor")
       ))
@@ -180,4 +178,5 @@ public class SheetsCommonService {
     return GSHEET_BASE_DATE.plusDays(serialDate);
   }
 
+  public record Cell(int row, int col) { }
 }

@@ -8,6 +8,7 @@ dependencies {
     implementation 'software.amazon.awssdk:lambda'
 
     implementation 'io.quarkus:quarkus-rest-client-jackson'
+    implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
 
     integrationTestImplementation 'com.github.tomakehurst:wiremock-jre8:3.0.1'
 }

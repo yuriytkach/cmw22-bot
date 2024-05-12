@@ -49,7 +49,8 @@ class GSheetDonationsUpdateRequestsPreparer {
     final var cellsForColor = EntryStream.of(donationCells)
       .mapValues(ignored -> valueColumnIndex)
       .append(EntryStream.of(newNamesCells).mapValues(ignored -> namesColumnIndex))
-      .toImmutableMap();
+      .mapKeyValue(SheetsCommonService.Cell::new)
+      .toImmutableList();
 
     return StreamEx.of(
         createRequestToAddNewDonators(sheetId, trackStartCol, newNamesCells, namesColumnIndex),

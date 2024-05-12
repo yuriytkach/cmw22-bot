@@ -4,6 +4,8 @@ reporter:
 txfetcher:
   privat:
     config-key: /batb/tx/privat/config
+  mono-token:
+    config-key: /batb/tx/mono-token/config
 
 translation:
   lambda:
@@ -13,6 +15,10 @@ quarkus:
   rest-client:
     privatbank:
       url: https://acp.privatbank.ua
+      connect-timeout: 2000
+      read-timeout: 10000
+    monobank:
+      url: https://api.monobank.ua
       connect-timeout: 2000
       read-timeout: 10000
   log:

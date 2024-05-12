@@ -2,6 +2,9 @@ package com.yuriytkach.batb.dr.tx.privat.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
 public record Transaction(
   @JsonProperty("REF") String id,
   @JsonProperty("CCY") String curr,

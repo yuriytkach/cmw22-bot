@@ -13,6 +13,7 @@ import com.yuriytkach.batb.common.storage.BankAccessStorage;
 import com.yuriytkach.batb.dr.tx.DonationTransaction;
 import com.yuriytkach.batb.dr.tx.DonationTransactionFetcher;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,5 +81,6 @@ public class PrivatTxFetcher implements DonationTransactionFetcher {
     }
   }
 
+  @RegisterForReflection
   public record PrivatTxFetcherConfig(String tokenName, List<String> accounts) { }
 }
