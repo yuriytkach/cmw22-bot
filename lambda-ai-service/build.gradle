@@ -9,6 +9,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-arc'
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-amazon-lambda'
+    implementation 'io.quarkiverse.amazonservices:quarkus-amazon-ssm'
+
+    implementation 'software.amazon.awssdk:url-connection-client'
 
     implementation 'io.quarkiverse.langchain4j:quarkus-langchain4j-openai:0.13.1'
 }

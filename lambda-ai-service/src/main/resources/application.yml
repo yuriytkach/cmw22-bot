@@ -1,3 +1,7 @@
+app:
+  aws-config-key:
+    openapi: /ai/chatgpt
+
 quarkus:
   langchain4j:
     openai:
@@ -21,6 +25,11 @@ quarkus:
     log:
       console:
         darken: 1
+    aws:
+      devservices:
+        localstack:
+          init-completion-msg: 'SSM parameters created'
+          init-scripts-folder: '/home/yuriy/workspace/bank-accounts-track-bot/.local-scripts'
 
 "%test":
   quarkus:

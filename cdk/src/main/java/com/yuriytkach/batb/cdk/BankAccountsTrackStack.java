@@ -260,6 +260,7 @@ public class BankAccountsTrackStack extends Stack {
 
   private Alias createVersionAndUpdateAlias(final Function lambda, final String id) {
     final var lambdaCurrentVersion = lambda.getCurrentVersion();
+    lambdaCurrentVersion.applyRemovalPolicy(RemovalPolicy.RETAIN);
     return Alias.Builder.create(this, id + "LambdaAlias")
       .aliasName("prod")
       .version(lambdaCurrentVersion)
@@ -401,10 +402,27 @@ public class BankAccountsTrackStack extends Stack {
       .memorySize(256)
       .timeout(Duration.minutes(2))
       .environment(Map.of(
-        "DISABLE_SIGNAL_HANDLERS", "true",
-        "QUARKUS_LANGCHAIN4J_OPENAI_API_KEY", "api-key"
+        "DISABLE_SIGNAL_HANDLERS", "true"
       ))
       .build();
+
+    PolicyStatement readPolicy1 = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParameter"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/ai/*"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
+          .toList())
+      .build();
+
+    lambda.getRole().attachInlinePolicy(
+      new Policy(this, "AiServiceLambda" + "ParameterStorePolicy", PolicyProps.builder()
+        .statements(List.of(readPolicy1))
+        .build())
+    );
 
     return createVersionAndUpdateAlias(lambda, "AiServiceLambda");
   }
