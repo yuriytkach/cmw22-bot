@@ -29,7 +29,7 @@ quarkus:
       devservices:
         localstack:
           init-completion-msg: 'SSM parameters created'
-          init-scripts-folder: '/home/yuriy/workspace/bank-accounts-track-bot/.local-scripts'
+          init-scripts-folder: 'bank-accounts-track-bot/.local-scripts'
 
 "%test":
   quarkus:
