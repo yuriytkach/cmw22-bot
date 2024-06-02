@@ -15,6 +15,7 @@ public interface NameTranslationAiService {
   @UserMessage("""
       Your task is to transliterate Ukrainian names written in English letters and output them in Ukrainian letters.
       Output only the Ukrainian names in the same order as original, in a single line with all names coma-separated.
+      The name can go in the format "Surname Name" or "Name Surname". Output the name in the format "Name Surname".
       If name cannot be translated, then output the original name.
       It is important to have same number of names separated by coma in the output as in the input.
       ---
