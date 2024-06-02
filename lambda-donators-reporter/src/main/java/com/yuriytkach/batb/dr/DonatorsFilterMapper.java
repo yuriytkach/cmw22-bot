@@ -36,7 +36,7 @@ public class DonatorsFilterMapper {
     return filtered;
   }
 
-  public Set<Donator> filterDonatorsByCount(final Set<Donator> groupedDonators) {
+  public Set<Donator> filterDonatorsByCount(final Collection<Donator> groupedDonators) {
     final var filtered = StreamEx.of(groupedDonators)
       .filter(donator -> donator.count() >= properties.minCount())
       .toImmutableSet();

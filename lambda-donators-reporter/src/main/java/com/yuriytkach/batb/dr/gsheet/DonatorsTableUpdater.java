@@ -2,6 +2,7 @@ package com.yuriytkach.batb.dr.gsheet;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -18,6 +19,7 @@ import com.yuriytkach.batb.dr.DonatorsFilterMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import one.util.streamex.EntryStream;
 
 @Slf4j
 @ApplicationScoped
@@ -84,11 +86,6 @@ public class DonatorsTableUpdater {
   }
 
   private void trackFrequentDonators(final BankAccount account, final Sheets sheets, final Set<Donator> donators) {
-    final Set<Donator> finalDonators = donatorsFilterMapper.filterDonatorsByCount(donators);
-
-    log.info("Donators after filtering: {}", finalDonators.size());
-    log.debug("Donators after filtering: {}", finalDonators);
-
     final String sheetDocId = account.id();
     final String sheetNameTop = account.properties().get("sheetNameTop");
 
@@ -97,10 +94,34 @@ public class DonatorsTableUpdater {
     sheetsCommonService.getSheetIdByName(sheets, sheetDocId, sheetNameTop)
       .ifPresentOrElse(
         sheetId -> gSheetExistingDonatorsFinder
-          .findAndMatchDonators(sheets, sheetDocId, sheetNameTop, "A", TOP_DONATORS_SKIP_ROWS, finalDonators, 4)
+          .findAndMatchDonators(sheets, sheetDocId, sheetNameTop, "A", TOP_DONATORS_SKIP_ROWS, donators, 4)
           .ifPresent(matchedDonators -> {
+            log.info("Existing donators matched: {}", matchedDonators.foundDonators().size());
+            log.debug("Existing donators matched: {}", matchedDonators.foundDonators());
+
+            final ProcessedDonators finalMatchedDonators;
+
+            if (matchedDonators.newDonators().isEmpty()) {
+              finalMatchedDonators = matchedDonators;
+            } else {
+              final int startRowForNew = matchedDonators.newDonators().keySet().stream()
+                .mapToInt(Integer::intValue).min().orElseThrow();
+
+              final Set<Donator> finalNewDonators = donatorsFilterMapper
+                .filterDonatorsByCount(matchedDonators.newDonators().values());
+
+              log.info("New donators after filtering: {}", finalNewDonators.size());
+              log.debug("New donators after filtering: {}", finalNewDonators);
+
+              final var newDonatorsWithRows = EntryStream.of(List.copyOf(finalNewDonators))
+                .mapKeys(row -> row + startRowForNew)
+                .toImmutableMap();
+
+              finalMatchedDonators = new ProcessedDonators(matchedDonators.foundDonators(), newDonatorsWithRows);
+            }
+
             final var requests = gSheetTopDonatorsUpdateRequestsPreparer.prepareRequests(
-              sheetId, matchedDonators
+              sheetId, finalMatchedDonators
             );
             if (!requests.isEmpty()) {
               sheetsCommonService.executeBatchGSheetRequests(sheets, sheetDocId, requests);
