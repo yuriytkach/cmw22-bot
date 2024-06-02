@@ -31,9 +31,19 @@ class GSheetTopDonatorsUpdateRequestsPreparer {
     final Integer sheetId,
     final DonatorsTableUpdater.ProcessedDonators matchedDonators
   ) {
-    return Stream.concat(
+    final var requests = Stream.concat(
       createRequestsToAddNewDonators(sheetId, matchedDonators.newDonators()).stream(),
       createRequestsToUpdateExistingDonators(sheetId, matchedDonators.foundDonators()).stream()
+    ).toList();
+
+    final var cellsForColor = requests.stream()
+      .map(request -> request.getUpdateCells().getStart().getRowIndex() + 1)
+      .map(row -> new SheetsCommonService.Cell(row, 0))
+      .toList();
+
+    return Stream.concat(
+      requests.stream(),
+      sheetsCommonService.createSetCellColorRequests(sheetId, cellsForColor, DonatorsTableUpdater.ORANGE_COLOR).stream()
     ).toList();
   }
 

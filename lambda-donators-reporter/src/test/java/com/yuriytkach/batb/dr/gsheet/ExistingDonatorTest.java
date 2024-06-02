@@ -15,7 +15,7 @@ class ExistingDonatorTest {
 
   @Test
   void shouldReturnInvertedName() {
-    assertThat(new ExistingDonator(1, List.of("John Doe", "42")).invertName()).isEqualTo("Doe John");
+    assertThat(new ExistingDonator(1, List.of("John Doe", "42")).invertName()).hasValue("Doe John");
   }
 
 }
