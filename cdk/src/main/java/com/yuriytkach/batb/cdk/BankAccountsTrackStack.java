@@ -447,7 +447,8 @@ public class BankAccountsTrackStack extends Stack {
       .resources(
         Stream.of(
             "arn:aws:ssm:%s:%s:parameter/batb/tx/*/config",
-            "arn:aws:ssm:%s:%s:parameter/batb/tx/ignored-names"
+            "arn:aws:ssm:%s:%s:parameter/batb/tx/ignored-names",
+            "arn:aws:ssm:%s:%s:parameter/batb/gsheet/donators"
           ).map(pattern -> pattern.formatted(
             Stack.of(this).getRegion(),
             Stack.of(this).getAccount()
