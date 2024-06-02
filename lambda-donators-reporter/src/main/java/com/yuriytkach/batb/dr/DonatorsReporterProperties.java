@@ -1,5 +1,7 @@
 package com.yuriytkach.batb.dr;
 
+import java.util.Set;
+
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 
@@ -17,5 +19,7 @@ public interface DonatorsReporterProperties {
 
   @WithDefault("/batb/tx/ignored-names")
   String ignoredDonatorsKey();
+
+  Set<String> nameStopWords();
 
 }

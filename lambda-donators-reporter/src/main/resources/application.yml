@@ -1,5 +1,10 @@
 reporter:
   month-before: 1
+  name-stop-words:
+    - Visa
+    - Banking
+    - Mobile
+    - From
 
 txfetcher:
   privat:

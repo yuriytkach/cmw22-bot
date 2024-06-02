@@ -1,13 +1,20 @@
 package com.yuriytkach.batb.dr.tx.privat;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.yuriytkach.batb.dr.DonatorsReporterProperties;
 import com.yuriytkach.batb.dr.tx.privat.api.Transaction;
 
 class PrivatTxNameMapperTest {
@@ -18,9 +25,14 @@ class PrivatTxNameMapperTest {
   }
 
   @Nested
+  @ExtendWith(MockitoExtension.class)
   class DescriptionNameResolverTest {
 
-    private final PrivatTxNameMapper.DescriptionNameResolver tested = new PrivatTxNameMapper.DescriptionNameResolver();
+    @Mock
+    private DonatorsReporterProperties donatorsReporterProperties;
+
+    @InjectMocks
+    private PrivatTxNameMapper.DescriptionNameResolver tested;
 
     @ParameterizedTest
     @CsvSource({
@@ -46,6 +58,13 @@ class PrivatTxNameMapperTest {
       "'4246 **** **** 2003 07.02.2024 17:50:31 Послуги: BANDERA, STEPAN, Visa Direct', Bandera Stepan",
       "'4246 **** **** 2003 09.03.2024 03:14:01 Зарахування переказу: BANDERA STEPAN, Visa Direct', Bandera Stepan",
 
+      "4246 **** **** 2003 10.02.2024 21:57:50 Перекази: вiд AA STEPAN, ",
+      "4246 **** **** 2003 10.02.2024 21:57:50 Перекази: вiд BANDERA ST, ",
+      "4246 **** **** 2003 10.02.2024 21:57:50 Перекази: вiд BANDERA Hello, ",
+      "4246 **** **** 2003 10.02.2024 21:57:50 Перекази: вiд World Stepan, ",
+      "'благодійний внесок на БПЛА, Б Степан Андрійович', ",
+      "'Благодійний внесок, Бандера С Андрійович', ",
+
       "4246 **** **** 2003 10.02.2024 21:57:50, ",
       "'4246 **** **** 2003 13.03.2024 20:10:38 Зарахування переказу: OTPBANKP2P, Visa Direct', ",
       "'4246 **** **** 2003 15.02.2024 19:49:11 Перекази: FUIB MoneyTransfer, Visa Direct', ",
@@ -55,6 +74,8 @@ class PrivatTxNameMapperTest {
       "asdf, ",
     })
     void shouldMapDescription(final String description, final String expectedName) {
+      lenient().when(donatorsReporterProperties.nameStopWords()).thenReturn(Set.of("Hello", "World"));
+
       assertThat(tested.resolveName(createTx(description, null))).isEqualTo(Optional.ofNullable(expectedName));
     }
   }

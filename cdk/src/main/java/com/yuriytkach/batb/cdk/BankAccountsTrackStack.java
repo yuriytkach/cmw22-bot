@@ -26,6 +26,7 @@ import software.amazon.awscdk.services.apigateway.RestApi;
 import software.amazon.awscdk.services.apigateway.StageOptions;
 import software.amazon.awscdk.services.certificatemanager.Certificate;
 import software.amazon.awscdk.services.certificatemanager.CertificateValidation;
+import software.amazon.awscdk.services.events.CronOptions;
 import software.amazon.awscdk.services.events.Rule;
 import software.amazon.awscdk.services.events.RuleTargetInput;
 import software.amazon.awscdk.services.events.Schedule;
@@ -434,14 +435,14 @@ public class BankAccountsTrackStack extends Stack {
       .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
       .logRetention(RetentionDays.ONE_WEEK)
       .memorySize(512)
-      .timeout(Duration.minutes(10))
+      .timeout(Duration.minutes(15))
       .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
       .environment(Map.of(
         "TRANSLATION_LAMBDA_FUNCTION_NAME", lambdaAiServiceAlias.getFunctionName()
       ))
       .build();
 
-    PolicyStatement readPolicy1 = PolicyStatement.Builder.create()
+    final PolicyStatement readPolicy1 = PolicyStatement.Builder.create()
       .actions(List.of("ssm:GetParameter"))
       .resources(
         Stream.of(
@@ -454,7 +455,7 @@ public class BankAccountsTrackStack extends Stack {
           .toList())
       .build();
 
-    PolicyStatement readPolicy2 = PolicyStatement.Builder.create()
+    final PolicyStatement readPolicy2 = PolicyStatement.Builder.create()
       .actions(List.of("ssm:GetParametersByPath"))
       .resources(
         Stream.of(
@@ -483,6 +484,17 @@ public class BankAccountsTrackStack extends Stack {
     );
 
     final Alias lambdaAlias = createVersionAndUpdateAlias(lambda, "DonatorsReporterLambda");
+
+    final var runEveryMonthRule = Rule.Builder.create(this, "DonatorsReporterLambdaMonthlyRunRule")
+      .schedule(Schedule.cron(CronOptions.builder().day("2").hour("5").minute("5").build()))
+      .build();
+
+    final var targetDonatorsLambda = LambdaFunction.Builder.create(lambdaAlias)
+      .retryAttempts(0)
+      .event(RuleTargetInput.fromObject(Map.of("readOnly", "false")))
+      .build();
+
+    runEveryMonthRule.addTarget(targetDonatorsLambda);
   }
 
   private void customDomainForRestApi(final RestApi restApi) {

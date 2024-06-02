@@ -20,7 +20,7 @@ import one.util.streamex.StreamEx;
 
 @Slf4j
 @Named("donatorsReporter")
-public class DonatorsReporterLambda implements RequestHandler<Object, Void> {
+public class DonatorsReporterLambda implements RequestHandler<DonatorsReporterLambdaRequest, Void> {
 
   @Inject
   Instance<DonationTransactionFetcher> txFetchers;
@@ -38,9 +38,9 @@ public class DonatorsReporterLambda implements RequestHandler<Object, Void> {
   Clock clock;
 
   @Override
-  public Void handleRequest(final Object ignored, final Context context) {
+  public Void handleRequest(final DonatorsReporterLambdaRequest request, final Context context) {
     MDC.put("awsRequestId", context.getAwsRequestId());
-    log.info("Donators Reporter Lambda. AWS Request ID: {}", context.getAwsRequestId());
+    log.info("Request: {}. AWS Request ID: {}", request, context.getAwsRequestId());
 
     final LocalDate startDate = createStartOfMonthDate();
     final LocalDate endDate = createEndOfMonthDate();
@@ -56,7 +56,12 @@ public class DonatorsReporterLambda implements RequestHandler<Object, Void> {
     final Set<Donator> finalDonators = donatorsFilterMapper.mapAndGroupDonators(donatorsWithAmounts);
     log.debug("Donators after mapping: {}", finalDonators.size());
 
-    donatorsTableUpdater.updateDonatorsTable(finalDonators);
+    if (request.readOnly()) {
+      log.info("Read-only mode. Skipping table update");
+    } else {
+      log.info("Updating donators table");
+      donatorsTableUpdater.updateDonatorsTable(finalDonators);
+    }
     return null;
   }
 

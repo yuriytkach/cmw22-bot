@@ -1,5 +1,6 @@
 package com.yuriytkach.batb.dr.tx.privat;
 
+import static java.util.function.Predicate.not;
 import static java.util.regex.Pattern.compile;
 
 import java.util.Locale;
@@ -9,6 +10,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.yuriytkach.batb.dr.DonatorsReporterProperties;
 import com.yuriytkach.batb.dr.tx.privat.api.Transaction;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -53,27 +55,32 @@ class PrivatTxNameMapper {
   }
 
   @ApplicationScoped
+  @RequiredArgsConstructor
   static final class DescriptionNameResolver implements PrivatNameResolver {
+
     private static final Set<Pattern> PATTERNS = Set.of(
-      compile(".*\\sвнески.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
-      compile("благо.* внес.*, (?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
+      compile(".*\\sвнески.*, (?<sname>[^\\p{IsLatin},]{3,})\\s(?<fname>[^\\p{IsLatin}]{3,})\\s[^\\p{IsLatin}]+"),
+      compile("благо.* внес.*, (?<sname>[^\\p{IsLatin},]{3,})\\s(?<fname>[^\\p{IsLatin}]{3,})\\s[^\\p{IsLatin}]+"),
       compile("(.плата|збір|допомога|пожертва).*, "
-        + "(?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
+        + "(?<sname>[^\\p{IsLatin},]{3,})\\s(?<fname>[^\\p{IsLatin}]{3,})\\s[^\\p{IsLatin}]+"),
       compile("на.*(зсу|бпла|дрон|рації|перемог.).*, "
-        + "(?<sname>[^\\p{IsLatin},]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
-      compile(".*благодійність, (?<sname>[^\\p{IsLatin}]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+"),
-      compile("\\d{4}.*послуги: (?<sname>\\w+),?\\s(?<fname>\\w+).*"),
-      compile("\\d{4}.*інше: від (?<sname>\\w+),?\\s(?<fname>\\w+).*"),
-      compile("\\d{4}.*iнше: вiд (?<sname>\\w+),?\\s(?<fname>\\w+).*"),
-      compile("\\d{4}.*перекази: вiд (?<sname>\\w+)\\s(?<fname>\\w+).*"),
-      compile("\\d{4}.*зарахування переказу: (?<sname>\\w+)\\s(?<fname>\\w+).*")
+        + "(?<sname>[^\\p{IsLatin},]{3,})\\s(?<fname>[^\\p{IsLatin}]{3,})\\s[^\\p{IsLatin}]+"),
+      compile(".*благодійність, (?<sname>[^\\p{IsLatin}]{3,})\\s(?<fname>[^\\p{IsLatin}]{3,})\\s[^\\p{IsLatin}]+"),
+      compile("\\d{4}.*послуги: (?<sname>\\w{3,}),?\\s(?<fname>\\w{3,}).*"),
+      compile("\\d{4}.*інше: від (?<sname>\\w{3,}),?\\s(?<fname>\\w{3,}).*"),
+      compile("\\d{4}.*iнше: вiд (?<sname>\\w{3,}),?\\s(?<fname>\\w{3,}).*"),
+      compile("\\d{4}.*перекази: вiд (?<sname>\\w{3,})\\s(?<fname>\\w{3,}).*"),
+      compile("\\d{4}.*зарахування переказу: (?<sname>\\w{3,})\\s(?<fname>\\w{3,}).*")
     );
+
+    private final DonatorsReporterProperties donatorsReporterProperties;
 
     @Override
     public Optional<String> resolveName(final Transaction tx) {
       return PATTERNS.stream()
         .map(pattern -> resolveNameFromPattern(pattern, tx.description().toLowerCase(Locale.getDefault())))
         .flatMap(Optional::stream)
+        .filter(not(name -> donatorsReporterProperties.nameStopWords().stream().anyMatch(name::contains)))
         .findFirst();
     }
   }
@@ -81,7 +88,7 @@ class PrivatTxNameMapper {
   @ApplicationScoped
   static final class ContrAgentNameResolver implements PrivatNameResolver {
     private static final Pattern PATTERN_1 = compile(
-      "(?<sname>[^\\p{IsLatin}]+)\\s(?<fname>[^\\p{IsLatin}]+)\\s[^\\p{IsLatin}]+");
+      "(?<sname>[^\\p{IsLatin}]{3,})\\s(?<fname>[^\\p{IsLatin}]{3,})\\s[^\\p{IsLatin}]+");
 
     @Override
     public Optional<String> resolveName(final Transaction tx) {
