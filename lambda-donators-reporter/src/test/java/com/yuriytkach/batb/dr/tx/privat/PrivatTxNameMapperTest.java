@@ -53,6 +53,8 @@ class PrivatTxNameMapperTest {
       "'На розвідувальний дрон для ЗСУ, Бандера Степан Андрійович', Бандера Степан",
       "'Допомога ЗСУ, Бандера Степан Андрійович', Бандера Степан",
       "'на благодійність, Бандера Степан Андрійович', Бандера Степан",
+      "Зарахування переказу: BANDERA STEPAN, Bandera Stepan",
+      "Зарахування переказу: вiд BANDERA STEPAN, Bandera Stepan",
       "4246 **** **** 2003 10.02.2024 21:57:50 Перекази: вiд BANDERA STEPAN, Bandera Stepan",
       "4246 **** **** 4981 11.03.2023 20:07:43 Iнше: Вiд BANDERA STEPAN, Bandera Stepan",
       "'4246 **** **** 2003 07.02.2024 17:50:31 Послуги: BANDERA, STEPAN, Visa Direct', Bandera Stepan",

@@ -70,7 +70,8 @@ class PrivatTxNameMapper {
       compile("\\d{4}.*інше: від (?<sname>\\w{3,}),?\\s(?<fname>\\w{3,}).*"),
       compile("\\d{4}.*iнше: вiд (?<sname>\\w{3,}),?\\s(?<fname>\\w{3,}).*"),
       compile("\\d{4}.*перекази: вiд (?<sname>\\w{3,})\\s(?<fname>\\w{3,}).*"),
-      compile("\\d{4}.*зарахування переказу: (?<sname>\\w{3,})\\s(?<fname>\\w{3,}).*")
+      compile("\\d{4}.*арахування переказу: (вiд )?(?<sname>\\w{3,})\\s(?<fname>\\w{3,}).*"),
+      compile(".арахування переказу: (вiд )?(?<sname>\\w{3,})\\s(?<fname>\\w{3,}).*")
     );
 
     private final DonatorsReporterProperties donatorsReporterProperties;

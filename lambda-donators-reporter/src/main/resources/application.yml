@@ -5,6 +5,7 @@ reporter:
     - Banking
     - Mobile
     - From
+    - Payment
 
 txfetcher:
   privat:

@@ -70,12 +70,26 @@ public class DonatorsNameService {
 
     return StreamEx.of(donators)
       .map(donator -> new Donator(
-        translations.getOrDefault(donator.name(), donator.name()),
+        constructTranslatedDonatorName(translations, donator),
         donator.amount(),
         donator.count(),
         donator.lastTxDateTime()
       ))
       .toImmutableList();
+  }
+
+  private static String constructTranslatedDonatorName(final Map<String, String> translations, final Donator donator) {
+    if (translations.containsKey(donator.name())) {
+      final var translated = translations.get(donator.name());
+      final var nameParts = translated.split(" ");
+      if (nameParts.length == 2) {
+        return nameParts[1] + " " + nameParts[0];
+      } else {
+        return translated;
+      }
+    } else {
+      return donator.name();
+    }
   }
 
 
