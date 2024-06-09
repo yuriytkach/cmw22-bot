@@ -6,6 +6,8 @@ reporter:
     - Mobile
     - From
     - Payment
+  replacers:
+    'Климанська Ольга': 'SendPulse'
 
 txfetcher:
   privat:

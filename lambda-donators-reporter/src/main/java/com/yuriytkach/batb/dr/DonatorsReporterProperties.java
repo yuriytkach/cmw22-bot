@@ -1,5 +1,6 @@
 package com.yuriytkach.batb.dr;
 
+import java.util.Map;
 import java.util.Set;
 
 import io.smallrye.config.ConfigMapping;
@@ -21,5 +22,7 @@ public interface DonatorsReporterProperties {
   String ignoredDonatorsKey();
 
   Set<String> nameStopWords();
+
+  Map<String, String> replacers();
 
 }

@@ -54,9 +54,21 @@ public class DonatorsFilterMapper {
     final var uniqueTranslatedDonators = groupDonatorsByName(translatedDonators);
     log.debug("Donators after translating names: {}", uniqueTranslatedDonators.size());
 
+    final var replacedDonators = replaceNames(uniqueTranslatedDonators);
+
     return secretsReader.readSecret(properties.ignoredDonatorsKey())
-      .map(ignoredNamesString -> filterDonatorsByName(uniqueTranslatedDonators, ignoredNamesString))
-      .orElse(uniqueTranslatedDonators);
+      .map(ignoredNamesString -> filterDonatorsByName(replacedDonators, ignoredNamesString))
+      .orElse(replacedDonators);
+  }
+
+  private Set<Donator> replaceNames(final Set<Donator> uniqueTranslatedDonators) {
+    final var replacers = properties.replacers();
+    return StreamEx.of(uniqueTranslatedDonators)
+      .map(donator -> {
+        final var replacedName = replacers.getOrDefault(donator.name(), donator.name());
+        return new Donator(replacedName, donator.amount(), donator.count(), donator.lastTxDateTime());
+      })
+      .toImmutableSet();
   }
 
   private Set<Donator> groupDonatorsByName(final Collection<Donator> donators) {
