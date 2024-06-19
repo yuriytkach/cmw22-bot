@@ -55,7 +55,6 @@ class MonoTokenService {
     final var result = readTransactions(token, jar, toEpochMilli(startDate), toEpochMilli(endDate.plusDays(1)) - 1)
       .filter(this::isCreditTransaction)
       .map(this::mapTx)
-      .flatMap(Optional::stream)
       .collect(Collectors.toUnmodifiableSet());
 
     log.info("Mapped mono-token TXes for jar {}: {}", jar, result.size());
@@ -66,19 +65,19 @@ class MonoTokenService {
     return result;
   }
 
-  private Optional<DonationTransaction> mapTx(final MonoStatement tx) {
-    final var rez = monoTxNameMapper.mapDonatorName(tx.description()).map(name -> DonationTransaction.builder()
+  private DonationTransaction mapTx(final MonoStatement tx) {
+    final var name = monoTxNameMapper.mapDonatorName(tx.description()).orElse(DonationTransaction.UNKNOWN);
+
+    if (log.isDebugEnabled() && DonationTransaction.UNKNOWN.equals(name)) {
+      log.debug("Cannot map name from mono-token TX: {}", tx);
+    }
+
+    return DonationTransaction.builder()
       .id(tx.id())
       .amountUah(tx.operationAmount())
       .date(Instant.ofEpochSecond(tx.time()))
       .name(name)
-      .build());
-
-    if (log.isDebugEnabled() && rez.isEmpty()) {
-      log.debug("Cannot map name from mono-token TX: {}", tx);
-    }
-
-    return rez;
+      .build();
   }
 
   private boolean isCreditTransaction(final MonoStatement statement) {

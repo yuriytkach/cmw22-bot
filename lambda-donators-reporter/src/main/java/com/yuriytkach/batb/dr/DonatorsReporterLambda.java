@@ -56,11 +56,17 @@ public class DonatorsReporterLambda implements RequestHandler<DonatorsReporterLa
     final Set<Donator> finalDonators = donatorsFilterMapper.mapAndGroupDonators(donatorsWithAmounts);
     log.debug("Donators after mapping: {}", finalDonators.size());
 
+    final long sum = StreamEx.of(finalDonators)
+      .mapToLong(Donator::amount)
+      .sum();
+    log.info("Total amount donated for period {}-{}: {}", startDate, endDate, sum);
+
     if (request.readOnly()) {
       log.info("Read-only mode. Skipping table update");
     } else {
       log.info("Updating donators table");
-      donatorsTableUpdater.updateDonatorsTable(finalDonators);
+      final var namedDonators = donatorsFilterMapper.filterNamedDonators(finalDonators);
+      donatorsTableUpdater.updateDonatorsTable(namedDonators);
     }
     return null;
   }

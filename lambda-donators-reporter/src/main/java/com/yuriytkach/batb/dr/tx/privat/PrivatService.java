@@ -1,7 +1,6 @@
 package com.yuriytkach.batb.dr.tx.privat;
 
 import java.time.LocalDate;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,7 +48,6 @@ class PrivatService {
     final var result = readTransactions(bankToken.value(), startDateStr, endDateStr, account, null)
       .filter(this::isCreditTransaction)
       .map(this::mapTx)
-      .flatMap(Optional::stream)
       .collect(Collectors.toUnmodifiableSet());
 
     log.info("Mapped privat TXes for account {}: {}", account, result.size());
@@ -87,19 +85,19 @@ class PrivatService {
       && transaction.status().equals(TRANSACTION_STATUS_PASSED);
   }
 
-  private Optional<DonationTransaction> mapTx(final Transaction tx) {
-    final var rez = privatTxNameMapper.mapDonatorName(tx).map(name -> DonationTransaction.builder()
+  private DonationTransaction mapTx(final Transaction tx) {
+    final var name = privatTxNameMapper.mapDonatorName(tx).orElse(DonationTransaction.UNKNOWN);
+
+    if (log.isDebugEnabled() && DonationTransaction.UNKNOWN.equals(name)) {
+      log.debug("Cannot map name from privat TX: {}", tx);
+    }
+
+    return DonationTransaction.builder()
       .id(tx.id())
       .amountUah(privatbankUtils.parseAmount(tx.sumEquivalent()))
       .date(privatbankUtils.safeParseDateTime(tx.dateTime()).orElse(null))
       .name(name)
-      .build());
-
-    if (log.isDebugEnabled() && rez.isEmpty()) {
-      log.debug("Cannot map name from privat TX: {}", tx);
-    }
-
-    return rez;
+      .build();
   }
 
 }

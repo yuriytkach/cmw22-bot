@@ -9,6 +9,7 @@ import java.util.Set;
 
 import com.yuriytkach.batb.common.secret.SecretsReader;
 import com.yuriytkach.batb.dr.translation.DonatorsNameService;
+import com.yuriytkach.batb.dr.tx.DonationTransaction;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -33,6 +34,14 @@ public class DonatorsFilterMapper {
       .filter(donator -> donator.amount() >= properties.minAmountCents())
       .toImmutableSet();
     log.debug("Donators with amounts >{} : {}", properties.minAmountCents() / 100, filtered.size());
+    return filtered;
+  }
+
+  public Set<Donator> filterNamedDonators(final Set<Donator> groupedDonators) {
+    final var filtered = StreamEx.of(groupedDonators)
+      .filter(not(donator -> DonationTransaction.UNKNOWN.equals(donator.name())))
+      .toImmutableSet();
+    log.debug("Donators with names : {}", filtered.size());
     return filtered;
   }
 

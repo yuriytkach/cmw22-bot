@@ -81,6 +81,8 @@ public class DonatorsTableUpdater {
       log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
     }
 
+
+
     trackDonationsWithAmounts(account, sheets, donators);
     trackFrequentDonators(account, sheets, donators);
   }

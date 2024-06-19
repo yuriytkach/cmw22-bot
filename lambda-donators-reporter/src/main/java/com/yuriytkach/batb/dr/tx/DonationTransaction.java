@@ -11,4 +11,7 @@ public record DonationTransaction(
   long amountUah,
   Instant date
 ) {
+
+  public static final String UNKNOWN = "Unknown";
+
 }
