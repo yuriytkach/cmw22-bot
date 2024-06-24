@@ -3,6 +3,6 @@ package com.yuriytkach.batb.ai;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
-public record LambdaAiServiceRequest(String service, String payload) {
+public record LambdaAiServiceRequest(AiServiceType service, String payload) {
 
 }

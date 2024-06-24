@@ -1,11 +1,10 @@
-package com.yuriytkach.batb.dr.translation.lambda;
+package com.yuriytkach.batb.common.ai;
 
 import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.lang3.StringUtils;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.lambda.LambdaClient;
@@ -13,20 +12,16 @@ import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 
 @Slf4j
 @ApplicationScoped
-@RequiredArgsConstructor
 public class LambdaInvoker {
 
-  private final LambdaInvokerProperties properties;
-
-  public String invokeLambda(final String payload) {
+  public String invokeLambda(final String functionName, final String payload) {
     try (var lambdaClient = LambdaClient.builder().build()) {
-
       final var invokeRequest = InvokeRequest.builder()
-        .functionName(properties.functionName())
+        .functionName(functionName)
         .payload(SdkBytes.fromString(payload, StandardCharsets.UTF_8))
         .build();
 
-      log.debug("Invoking Lambda AI service: {}", properties.functionName());
+      log.debug("Invoking Lambda AI service: {}", functionName);
       final var invokeResponse = lambdaClient.invoke(invokeRequest);
 
       log.info("Received lambda response: {}", invokeResponse.statusCode());

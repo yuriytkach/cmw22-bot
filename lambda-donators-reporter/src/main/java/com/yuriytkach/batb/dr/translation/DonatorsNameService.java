@@ -9,9 +9,10 @@ import java.util.Set;
 import java.util.function.Function;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yuriytkach.batb.common.ai.AiServiceType;
+import com.yuriytkach.batb.common.ai.LambdaAiServiceRequest;
+import com.yuriytkach.batb.common.ai.LambdaInvoker;
 import com.yuriytkach.batb.dr.Donator;
-import com.yuriytkach.batb.dr.translation.lambda.LambdaAiServiceRequest;
-import com.yuriytkach.batb.dr.translation.lambda.LambdaInvoker;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,7 @@ public class DonatorsNameService {
 
   private final ObjectMapper objectMapper;
   private final LambdaInvoker lambdaInvoker;
+  private final LambdaInvokerProperties properties;
 
   public Collection<Donator> translateEnglishNames(final Set<Donator> donatorsWithAmounts) {
     final List<String> englishNames = StreamEx.of(donatorsWithAmounts)
@@ -40,7 +42,7 @@ public class DonatorsNameService {
     }
 
     return createLambdaPayload(englishNames)
-      .map(lambdaInvoker::invokeLambda)
+      .map(payload -> lambdaInvoker.invokeLambda(properties.functionName(), payload))
       .map(lambdaResponse -> mapTranslations(englishNames, lambdaResponse))
       .map(translations -> mapNames(donatorsWithAmounts, translations))
       .orElse(donatorsWithAmounts);
@@ -97,7 +99,7 @@ public class DonatorsNameService {
     final String payload = StreamEx.of(englishNames).joining(",");
     try {
       return Optional.of(objectMapper.writeValueAsString(
-        new LambdaAiServiceRequest("translateNames", payload)
+        new LambdaAiServiceRequest(AiServiceType.TRANSLATE_NAMES, payload)
       ));
     } catch (final Exception ex) {
       log.error("Failed to serialize Lambda payload: {}", ex.getMessage());

@@ -1,4 +1,4 @@
-package com.yuriytkach.batb.dr.translation.lambda;
+package com.yuriytkach.batb.dr.translation;
 
 import io.smallrye.config.ConfigMapping;
 
