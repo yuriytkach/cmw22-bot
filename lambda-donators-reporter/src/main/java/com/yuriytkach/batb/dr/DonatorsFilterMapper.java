@@ -5,6 +5,7 @@ import static java.util.function.Predicate.not;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import com.yuriytkach.batb.common.secret.SecretsReader;
@@ -53,7 +54,7 @@ public class DonatorsFilterMapper {
     return filtered;
   }
 
-  Set<Donator> mapAndGroupDonators(final Collection<Donator> donatorsPerTransaction) {
+  DonatorSets mapAndGroupDonators(final Collection<Donator> donatorsPerTransaction) {
     log.debug("Donators before mapping/filtering: {}", donatorsPerTransaction.size());
 
     final var uniqueDonators = groupDonatorsByName(donatorsPerTransaction);
@@ -63,11 +64,20 @@ public class DonatorsFilterMapper {
     final var uniqueTranslatedDonators = groupDonatorsByName(translatedDonators);
     log.debug("Donators after translating names: {}", uniqueTranslatedDonators.size());
 
-    final var replacedDonators = replaceNames(uniqueTranslatedDonators);
+    final var replacedGroupedDonators = replaceNames(uniqueTranslatedDonators);
+    final var replacedUngroupedDonators = replaceNames(Set.copyOf(donatorsPerTransaction));
 
-    return secretsReader.readSecret(properties.ignoredDonatorsKey())
-      .map(ignoredNamesString -> filterDonatorsByName(replacedDonators, ignoredNamesString))
-      .orElse(replacedDonators);
+    final Optional<String> ignoredDonatorsNames = secretsReader.readSecret(properties.ignoredDonatorsKey());
+
+    final var groupedTranslated = ignoredDonatorsNames
+      .map(ignoredNamesString -> filterDonatorsByName(replacedGroupedDonators, ignoredNamesString))
+      .orElse(replacedGroupedDonators);
+
+    final var ungroupedTranslated = ignoredDonatorsNames
+      .map(ignoredNamesString -> filterDonatorsByName(replacedUngroupedDonators, ignoredNamesString))
+      .orElse(replacedUngroupedDonators);
+
+    return new DonatorSets(groupedTranslated, ungroupedTranslated);
   }
 
   private Set<Donator> replaceNames(final Set<Donator> uniqueTranslatedDonators) {
@@ -104,5 +114,7 @@ public class DonatorsFilterMapper {
     log.debug("Donators after filtering by ignored names: {}", filteredDonators.size());
     return filteredDonators;
   }
+
+  record DonatorSets(Set<Donator> grouped, Set<Donator> ungrouped) { }
 
 }

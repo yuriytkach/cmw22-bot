@@ -50,7 +50,12 @@ class PrivatService {
       .map(this::mapTx)
       .collect(Collectors.toUnmodifiableSet());
 
+    final long amount = StreamEx.of(result)
+      .mapToLong(DonationTransaction::amountUah)
+      .sum();
+
     log.info("Mapped privat TXes for account {}: {}", account, result.size());
+    log.info("Total amount for account {}: {}", account, amount);
     if (log.isTraceEnabled()) {
       StreamEx.of(result).forEach(tx -> log.trace("Mapped TX: {}", tx));
     }

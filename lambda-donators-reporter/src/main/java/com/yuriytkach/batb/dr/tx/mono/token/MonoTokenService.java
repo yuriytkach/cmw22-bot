@@ -57,7 +57,12 @@ class MonoTokenService {
       .map(this::mapTx)
       .collect(Collectors.toUnmodifiableSet());
 
+    final long totalAmount = StreamEx.of(result)
+      .mapToLong(DonationTransaction::amountUah)
+      .sum();
+
     log.info("Mapped mono-token TXes for jar {}: {}", jar, result.size());
+    log.info("Total amount for jar {}: {}", jar, totalAmount);
     if (log.isTraceEnabled()) {
       StreamEx.of(result).forEach(tx -> log.trace("Mapped TX: {}", tx));
     }
