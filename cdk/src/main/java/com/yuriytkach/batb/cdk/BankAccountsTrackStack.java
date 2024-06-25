@@ -67,6 +67,8 @@ public class BankAccountsTrackStack extends Stack {
 
     createDonatorsReportLambda(lambdaAiServiceAlias);
 
+    createBirthdayCheckerLambda(lambdaAiServiceAlias);
+
     final RequestAuthorizer authorizer = RequestAuthorizer.Builder.create(this, "TelegramAuthorizerBot")
       .handler(lambdaBotAuthorizerAlias)
       .identitySources(List.of("method.request.header.X-Telegram-Bot-Api-Secret-Token"))
@@ -96,6 +98,13 @@ public class BankAccountsTrackStack extends Stack {
     final IResource hookResource = restApi.getRoot().addResource("hook");
     final Resource eventResource = hookResource.addResource("event");
     eventResource.addMethod("POST", new LambdaIntegration(lambdaTelegramBotAlias), MethodOptions.builder()
+      .authorizer(authorizer)
+      .authorizationType(AuthorizationType.CUSTOM)
+      .build());
+
+    final IResource botResource = restApi.getRoot().addResource("bot");
+    final Resource telegramResource = botResource.addResource("telegram");
+    telegramResource.addMethod("POST", new LambdaIntegration(lambdaTelegramBotAlias), MethodOptions.builder()
       .authorizer(authorizer)
       .authorizationType(AuthorizationType.CUSTOM)
       .build());
@@ -496,6 +505,75 @@ public class BankAccountsTrackStack extends Stack {
       .build();
 
     runEveryMonthRule.addTarget(targetDonatorsLambda);
+  }
+
+  private void createBirthdayCheckerLambda(final Alias lambdaAiServiceAlias) {
+    final var lambda = Function.Builder.create(this, "BirthdayCheckerLambda")
+      .runtime(Runtime.JAVA_21)
+      .code(Code.fromAsset("../lambda-birthday-checker/build/function.zip"))
+      .handler("io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest")
+      .logRetention(RetentionDays.ONE_WEEK)
+      .memorySize(512)
+      .timeout(Duration.minutes(5))
+      .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
+      .environment(Map.of(
+        "AI_LAMBDA_FUNCTION_NAME", lambdaAiServiceAlias.getFunctionName()
+      ))
+      .build();
+
+    final PolicyStatement readPolicy1 = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParameter"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/batb/gsheet/registry",
+            "arn:aws:ssm:%s:%s:parameter/bot/telegram/secret"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
+          .toList())
+      .build();
+
+    final PolicyStatement readPolicy2 = PolicyStatement.Builder.create()
+      .actions(List.of("ssm:GetParametersByPath"))
+      .resources(
+        Stream.of(
+            "arn:aws:ssm:%s:%s:parameter/batb/gsheet/tokens"
+          ).map(pattern -> pattern.formatted(
+            Stack.of(this).getRegion(),
+            Stack.of(this).getAccount()
+          ))
+          .toList())
+      .build();
+
+    lambda.getRole().attachInlinePolicy(
+      new Policy(this, "BirthdayCheckerLambda" + "ParameterStorePolicy", PolicyProps.builder()
+        .statements(List.of(readPolicy1, readPolicy2))
+        .build())
+    );
+    lambda.getRole().attachInlinePolicy(
+      Policy.Builder.create(this, "BirthdayCheckerLambda_InvokeAiServicesLambda")
+        .statements(List.of(
+          PolicyStatement.Builder.create()
+            .actions(List.of("lambda:InvokeFunction"))
+            .resources(List.of(lambdaAiServiceAlias.getFunctionArn()))
+            .build()
+        ))
+        .build()
+    );
+
+    final Alias lambdaAlias = createVersionAndUpdateAlias(lambda, "BirthdayCheckerLambda");
+
+    final var runEveryMonthRule = Rule.Builder.create(this, "BirthdayCheckerLambdaDailyRunRule")
+      .schedule(Schedule.cron(CronOptions.builder().hour("6").minute("50").build()))
+      .build();
+
+    final var targetBirthdayCheckerLambda = LambdaFunction.Builder.create(lambdaAlias)
+      .retryAttempts(0)
+      .event(RuleTargetInput.fromObject(Map.of("readOnly", "false")))
+      .build();
+
+    runEveryMonthRule.addTarget(targetBirthdayCheckerLambda);
   }
 
   private void customDomainForRestApi(final RestApi restApi) {

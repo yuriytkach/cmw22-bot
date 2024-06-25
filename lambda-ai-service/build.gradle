@@ -13,5 +13,5 @@ dependencies {
 
     implementation 'software.amazon.awssdk:url-connection-client'
 
-    implementation 'io.quarkiverse.langchain4j:quarkus-langchain4j-openai:0.13.1'
+    implementation 'io.quarkiverse.langchain4j:quarkus-langchain4j-openai:0.15.1'
 }

@@ -9,5 +9,8 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-jackson'
     implementation 'io.quarkus:quarkus-amazon-lambda'
 
-    implementation 'org.telegram:telegrambots-meta:6.9.7.1'
+    implementation 'org.telegram:telegrambots-meta:7.4.2'
+
+    implementation 'org.apache.commons:commons-lang3:3.14.0'
+    implementation 'commons-io:commons-io:2.16.1'
 }

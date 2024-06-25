@@ -79,8 +79,7 @@ public class GSheetService {
   }
 
   public Optional<GSheetStatsData> readStats(final BankAccount account, final Sheets sheets) {
-    if (isAccountDataInvalid(account)
-    ) {
+    if (isAccountDataInvalid(account)) {
       log.error("GSheet Account has no properties or sheetName is not defined: {}", account);
       return Optional.empty();
     }

@@ -27,3 +27,18 @@ quarkus:
     category:
       "com.yuriytkach":
         level: DEBUG
+
+"%dev":
+  quarkus:
+    log:
+      min-level: TRACE
+      console:
+        darken: 1
+      category:
+        "com.yuriytkach":
+          level: TRACE
+    aws:
+      devservices:
+        localstack:
+          init-completion-msg: 'SSM parameters created'
+          init-scripts-folder: '.local-scripts'

@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import com.yuriytkach.batb.common.google.SheetUtilities;
 import com.yuriytkach.batb.dr.Donator;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -24,6 +25,9 @@ class GSheetExistingDonatorsFinder {
 
   @Inject
   GSheetColumnCalculator gSheetColumnCalculator;
+
+  @Inject
+  SheetUtilities sheetUtilities;
 
   public Optional<DonatorsTableUpdater.ProcessedDonators> findAndMatchDonators(
     final Sheets sheets,
@@ -84,8 +88,8 @@ class GSheetExistingDonatorsFinder {
     final int skipRows,
     final int columnsToRead
   ) {
-    final int endColIndex = gSheetColumnCalculator.columnToIndex(namesCol) + columnsToRead - 1;
-    final String endCol = gSheetColumnCalculator.indexToColumn(endColIndex);
+    final int endColIndex = sheetUtilities.columnToIndex(namesCol) + columnsToRead - 1;
+    final String endCol = sheetUtilities.indexToColumn(endColIndex);
 
     try {
       final String range = "'%s'!%s%d:%s".formatted(sheetName, namesCol, skipRows + 1, endCol);

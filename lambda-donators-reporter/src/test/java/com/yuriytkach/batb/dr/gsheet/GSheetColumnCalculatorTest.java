@@ -7,9 +7,11 @@ import java.time.LocalDate;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.yuriytkach.batb.common.google.SheetUtilities;
+
 class GSheetColumnCalculatorTest {
 
-  private final GSheetColumnCalculator tested = new GSheetColumnCalculator();
+  private final GSheetColumnCalculator tested = new GSheetColumnCalculator(new SheetUtilities());
 
   @ParameterizedTest
   @CsvSource({

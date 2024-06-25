@@ -16,29 +16,39 @@ public class AiServiceLambda implements RequestHandler<LambdaAiServiceRequest, S
   @Inject
   NameTranslationAiService nameTranslationAiService;
 
+  @Inject
+  BirthdayWishAiService birthdayWishAiService;
+
   @Override
   public String handleRequest(final LambdaAiServiceRequest request, final Context context) {
     MDC.put("awsRequestId", context.getAwsRequestId());
     log.info("AI Service Lambda. AWS Request ID: {}", context.getAwsRequestId());
     log.debug("Request: {}", request);
 
-    if (AiServiceType.TRANSLATE_NAMES == request.service()) {
-      log.info("Invoking AI service to translate names");
-      final var result = nameTranslationAiService.translate(request.payload());
-      log.info("AI service response: {}", result.evaluation());
-      return switch (result.evaluation()) {
-        case POSITIVE -> {
-          log.info("AI service successfully translated names");
-          yield result.message();
-        }
-        case NEGATIVE -> {
-          log.error("AI service failed to translate names: {}", result.message());
-          yield "";
-        }
-      };
-    } else {
-      log.error("Unknown service: {}", request.service());
-      return "";
-    }
+    final AiResponse result = switch (request.service()) {
+      case TRANSLATE_NAMES -> {
+        log.info("Invoking AI service to translate names");
+        yield nameTranslationAiService.translate(request.payload());
+      }
+      case BIRTHDAY_WISH -> {
+        log.info("Invoking AI service to create birthday wish");
+        yield birthdayWishAiService.createWish(request.payload());
+      }
+    };
+    return processAiResult(result);
+  }
+
+  private String processAiResult(final AiResponse result) {
+    log.info("AI service response: {}", result.evaluation());
+    return switch (result.evaluation()) {
+      case POSITIVE -> {
+        log.info("AI service successfully translated names");
+        yield result.message();
+      }
+      case NEGATIVE -> {
+        log.error("AI service failed to translate names: {}", result.message());
+        yield "";
+      }
+    };
   }
 }

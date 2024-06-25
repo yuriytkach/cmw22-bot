@@ -47,7 +47,8 @@ public class LambdaBotAuthorizer implements RequestHandler<AuthorizerRequest, Po
   }
 
   private PolicyResponse allow(final AuthorizerRequest input) {
-    return responseCreator.createResponse(IamPolicyResponse.ALLOW, input.methodArn());
+    final var arn = input.methodArn().replaceFirst("prod/POST/.*", "prod/POST/*");
+    return responseCreator.createResponse(IamPolicyResponse.ALLOW, arn);
   }
 
   private PolicyResponse deny(final AuthorizerRequest input) {

@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 import org.telegram.telegrambots.meta.api.methods.reactions.SetMessageReaction;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.reactions.ReactionType;
 import org.telegram.telegrambots.meta.api.objects.reactions.ReactionTypeEmoji;
 
@@ -37,7 +37,7 @@ class TelegramBotService {
   @SneakyThrows
   public Optional<Object> processUpdate(final Message message) {
     if (isMyText(message.getText())) {
-      final SendMessage.SendMessageBuilder responseBuilder = SendMessage.builder()
+      final var responseBuilder = SendMessage.builder()
         .chatId(message.getChatId())
         .replyToMessageId(message.getMessageId());
 

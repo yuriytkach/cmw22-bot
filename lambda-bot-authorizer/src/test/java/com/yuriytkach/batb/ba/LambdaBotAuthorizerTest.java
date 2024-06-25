@@ -24,7 +24,8 @@ import com.yuriytkach.batb.common.secret.SecretsReader;
 @ExtendWith(MockitoExtension.class)
 class LambdaBotAuthorizerTest {
 
-  private static final String METHOD_ARN = "arn:aws:execute-api:eu-west-1:123456789012:abcdef12345/*/GET/";
+  public static final String METHOD_ARN_PREFIX = "arn:aws:execute-api:eu-west-1:708852321608:ygmvzxfo06/prod/POST/";
+  private static final String METHOD_ARN = METHOD_ARN_PREFIX + "hook/event";
 
   @Mock
   private SecretsReader secretsReader;
@@ -67,7 +68,7 @@ class LambdaBotAuthorizerTest {
       final var result = tested.handleRequest(input, contextMock);
       assertThat(result).isEqualTo(mockResponse);
 
-      verify(responseCreator).createResponse(IamPolicyResponse.ALLOW, METHOD_ARN);
+      verify(responseCreator).createResponse(IamPolicyResponse.ALLOW, METHOD_ARN_PREFIX + "*");
     }
   }
 

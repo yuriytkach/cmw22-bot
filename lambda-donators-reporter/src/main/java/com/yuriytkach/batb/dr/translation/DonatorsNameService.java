@@ -4,13 +4,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yuriytkach.batb.common.ai.AiServiceType;
-import com.yuriytkach.batb.common.ai.LambdaAiServiceRequest;
 import com.yuriytkach.batb.common.ai.LambdaInvoker;
 import com.yuriytkach.batb.dr.Donator;
 
@@ -24,7 +21,6 @@ import one.util.streamex.StreamEx;
 @RequiredArgsConstructor
 public class DonatorsNameService {
 
-  private final ObjectMapper objectMapper;
   private final LambdaInvoker lambdaInvoker;
   private final LambdaInvokerProperties properties;
 
@@ -41,8 +37,11 @@ public class DonatorsNameService {
       return donatorsWithAmounts;
     }
 
-    return createLambdaPayload(englishNames)
-      .map(payload -> lambdaInvoker.invokeLambda(properties.functionName(), payload))
+    return lambdaInvoker.invokeAiLambda(
+        properties.functionName(),
+        AiServiceType.TRANSLATE_NAMES,
+        StreamEx.of(englishNames).joining(",")
+      )
       .map(lambdaResponse -> mapTranslations(englishNames, lambdaResponse))
       .map(translations -> mapNames(donatorsWithAmounts, translations))
       .orElse(donatorsWithAmounts);
@@ -91,19 +90,6 @@ public class DonatorsNameService {
       }
     } else {
       return donator.name();
-    }
-  }
-
-
-  private Optional<String> createLambdaPayload(final List<String> englishNames) {
-    final String payload = StreamEx.of(englishNames).joining(",");
-    try {
-      return Optional.of(objectMapper.writeValueAsString(
-        new LambdaAiServiceRequest(AiServiceType.TRANSLATE_NAMES, payload)
-      ));
-    } catch (final Exception ex) {
-      log.error("Failed to serialize Lambda payload: {}", ex.getMessage());
-      return Optional.empty();
     }
   }
 
