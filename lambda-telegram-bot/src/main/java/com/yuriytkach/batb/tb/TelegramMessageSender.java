@@ -27,6 +27,9 @@ import one.util.streamex.StreamEx;
 @RequiredArgsConstructor
 public class TelegramMessageSender {
 
+  static final String FORMAT_HTML = "HTML";
+  static final String FORMAT_MARKDOWN_V2 = "MarkdownV2";
+
   private final SecretsReader secretsReader;
   private final AppProperties appProperties;
 
@@ -34,60 +37,77 @@ public class TelegramMessageSender {
   private final TelegramApi telegramApi;
 
   public void sendMessage(final TelegramBotSendMessageRequest request) {
-    getChatId().ifPresent(chatIds -> {
-      secretsReader.readSecret(appProperties.botToken())
-        .ifPresent(token -> {
-          final String text = prepareMessage(request);
-          log.info("Sending message {} to telegram chats: {}", request.notificationType(), text);
-          StreamEx.of(chatIds).forEach(chatId -> {
-            log.info("Sending message to chat: {}", chatId);
-            final var msg = request.imgUrl() == null
-                            ? createSendMessageRequest(chatId, text)
-                            : createSendPhotoRequest(request, chatId, text);
+    getChatId().ifPresent(chatIds -> secretsReader.readSecret(appProperties.botToken())
+      .ifPresent(token -> {
+        final var msgAndType = prepareMessage(request);
+        log.info("Sending message {} to telegram chats: {}", request.notificationType(), msgAndType);
+        StreamEx.of(chatIds).forEach(chatId -> {
+          log.info("Sending message to chat: {}", chatId);
+          final var msg = request.imgUrl() == null
+                          ? createSendMessageRequest(chatId, msgAndType)
+                          : createSendPhotoRequest(chatId, msgAndType, request.imgUrl());
 
-            try (Response response = telegramApi.send(
-              token,
-              msg instanceof SendPhotoMy spm ? spm.getMethod() : "sendMessage",
-              msg
-            )) {
-              log.info("Response: {}", response.getStatus());
-              if (response.hasEntity() && response.getEntity() != null) {
-                log.info("Response entity: {}", response.getEntity());
-              }
+          try (Response response = telegramApi.send(
+            token,
+            msg instanceof SendPhotoMy spm ? spm.getMethod() : "sendMessage",
+            msg
+          )) {
+            log.info("Response: {}", response.getStatus());
+            if (response.hasEntity() && response.getEntity() != null) {
+              log.info("Response entity: {}", response.getEntity());
             }
-          });
+          }
         });
-    });
+      }));
   }
 
-  private SendMessage createSendMessageRequest(final String chatId, final String text) {
+  private SendMessage createSendMessageRequest(final String chatId, final MessageWithFormat msgAndType) {
     return SendMessage.builder()
       .chatId(chatId)
-      .text(text)
-      .parseMode("HTML")
+      .text(msgAndType.message())
+      .parseMode(msgAndType.format())
       .build();
   }
 
   @SneakyThrows
   private SendPhotoMy createSendPhotoRequest(
-    final TelegramBotSendMessageRequest request,
     final String chatId,
-    final String text
+    final MessageWithFormat msgAndType,
+    final String photoUrl
   ) {
     return SendPhotoMy.builder()
       .chatId(chatId)
-      .photo(request.imgUrl())
-      .caption(text)
-      .parseMode("HTML")
+      .photo(photoUrl)
+      .caption(msgAndType.message())
+      .parseMode(msgAndType.format())
       .showCaptionAboveMedia(true)
       .build();
   }
 
   @SneakyThrows
-  private String prepareMessage(final TelegramBotSendMessageRequest request) {
-    return StringEscapeUtils.unescapeJava(request.message())
+  private MessageWithFormat prepareMessage(final TelegramBotSendMessageRequest request) {
+    return switch (request.notificationType()) {
+      case BIRTHDAY -> prepareBirthdayMessage(request);
+      case DONATION_STATS -> prepareDonationStatsMessage(request);
+      default -> new MessageWithFormat(request.message(), FORMAT_HTML);
+    };
+  }
+
+  private MessageWithFormat prepareDonationStatsMessage(final TelegramBotSendMessageRequest request) {
+    final char[] escape = {'[', ']', '(', ')', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'};
+    final String escaped = request.message().chars()
+      .mapToObj(c -> new String(escape).indexOf(c) != -1 ? "\\" + (char) c : String.valueOf((char) c))
+      .reduce(new StringBuilder(), StringBuilder::append, StringBuilder::append)
+      .toString();
+    return new MessageWithFormat(escaped, FORMAT_MARKDOWN_V2);
+  }
+
+  @SneakyThrows
+  private MessageWithFormat prepareBirthdayMessage(final TelegramBotSendMessageRequest request) {
+    final var msg = StringEscapeUtils.unescapeJava(request.message())
       .replace("Хоку:", "<b>Хоку:</b>")
       .replace("з Днем Народження!", "з <b>Днем Народження!</b> 🥳 ");
+    return new MessageWithFormat(msg, FORMAT_HTML);
   }
 
   public Optional<List<String>> getChatId() {
@@ -114,4 +134,9 @@ public class TelegramMessageSender {
       return "sendPhoto";
     }
   }
+
+  record MessageWithFormat(
+    String message,
+    String format
+  ) { }
 }
