@@ -1,14 +1,12 @@
 package com.yuriytkach.batb.tb;
 
-import java.util.Arrays;
-
 import org.slf4j.MDC;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.chat.Chat;
 
-import com.yuriytkach.batb.common.secret.SecretsReader;
-import com.yuriytkach.batb.tb.config.AppProperties;
+import com.yuriytkach.batb.tb.config.ChatConfigReader;
+import com.yuriytkach.batb.tb.config.ChatConfiguration;
 
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -24,8 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class TelegramHookController {
 
-  private final SecretsReader secretsReader;
-  private final AppProperties appProperties;
+  private final ChatConfigReader chatConfigReader;
   private final TelegramBotService telegramBotService;
 
   @POST
@@ -76,9 +73,10 @@ public class TelegramHookController {
   }
 
   private boolean isValidChatId(final Chat chat) {
-    return secretsReader.readSecret(appProperties.chatIdSecretKey())
+    return chatConfigReader.readConfig()
       .stream()
-      .flatMap(chatIds -> Arrays.stream(chatIds.split(",")))
+      .flatMap(config -> config.chats().stream())
+      .map(ChatConfiguration.ChatConfig::id)
       .anyMatch(chatId -> chatId.equals(chat.getId().toString()));
   }
 

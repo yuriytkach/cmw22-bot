@@ -1,5 +1,9 @@
 package com.yuriytkach.batb.tb;
 
+import static com.yuriytkach.batb.common.telega.TelegramBotNotificationType.BIRTHDAY;
+import static com.yuriytkach.batb.common.telega.TelegramBotNotificationType.DONATION_STATS;
+import static com.yuriytkach.batb.common.telega.TelegramBotNotificationType.GENERAL;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -9,9 +13,13 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.yuriytkach.batb.common.secret.SecretsReader;
+import com.yuriytkach.batb.common.telega.TelegramBotNotificationType;
 import com.yuriytkach.batb.common.telega.TelegramBotSendMessageRequest;
 import com.yuriytkach.batb.tb.api.TelegramApi;
 import com.yuriytkach.batb.tb.config.AppProperties;
+import com.yuriytkach.batb.tb.config.ChatConfigReader;
+import com.yuriytkach.batb.tb.config.ChatConfiguration;
+import com.yuriytkach.batb.tb.config.ChatConfiguration.ChatConfig;
 
 import io.vertx.ext.web.handler.sockjs.impl.StringEscapeUtils;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -32,20 +40,21 @@ public class TelegramMessageSender {
 
   private final SecretsReader secretsReader;
   private final AppProperties appProperties;
+  private final ChatConfigReader chatConfigReader;
 
   @RestClient
   private final TelegramApi telegramApi;
 
   public void sendMessage(final TelegramBotSendMessageRequest request) {
-    getChatId().ifPresent(chatIds -> secretsReader.readSecret(appProperties.botToken())
+    getChatConfigs().ifPresent(chatConfigs -> secretsReader.readSecret(appProperties.botToken())
       .ifPresent(token -> {
         final var msgAndType = prepareMessage(request);
         log.info("Sending message {} to telegram chats: {}", request.notificationType(), msgAndType);
-        StreamEx.of(chatIds).forEach(chatId -> {
-          log.info("Sending message to chat: {}", chatId);
+        StreamEx.of(chatConfigs).forEach(chatConfig -> {
+          log.info("Sending message to chat: {}", chatConfig);
           final var msg = request.imgUrl() == null
-                          ? createSendMessageRequest(chatId, msgAndType)
-                          : createSendPhotoRequest(chatId, msgAndType, request.imgUrl());
+                          ? createSendMessageRequest(chatConfig, msgAndType)
+                          : createSendPhotoRequest(chatConfig, msgAndType, request.imgUrl());
 
           try (Response response = telegramApi.send(
             token,
@@ -61,58 +70,59 @@ public class TelegramMessageSender {
       }));
   }
 
-  private SendMessage createSendMessageRequest(final String chatId, final MessageWithFormat msgAndType) {
+  private SendMessage createSendMessageRequest(final ChatConfig chatConfig, final MessageData msgAndType) {
     return SendMessage.builder()
-      .chatId(chatId)
+      .chatId(chatConfig.id())
       .text(msgAndType.message())
       .parseMode(msgAndType.format())
+      .messageThreadId(chatConfig.threads().get(msgAndType.notificationType()))
       .build();
   }
 
   @SneakyThrows
   private SendPhotoMy createSendPhotoRequest(
-    final String chatId,
-    final MessageWithFormat msgAndType,
+    final ChatConfig chatConfig,
+    final MessageData msgAndType,
     final String photoUrl
   ) {
     return SendPhotoMy.builder()
-      .chatId(chatId)
+      .chatId(chatConfig.id())
       .photo(photoUrl)
       .caption(msgAndType.message())
       .parseMode(msgAndType.format())
       .showCaptionAboveMedia(true)
+      .messageThreadId(chatConfig.threads().get(msgAndType.notificationType()))
       .build();
   }
 
   @SneakyThrows
-  private MessageWithFormat prepareMessage(final TelegramBotSendMessageRequest request) {
+  private MessageData prepareMessage(final TelegramBotSendMessageRequest request) {
     return switch (request.notificationType()) {
       case BIRTHDAY -> prepareBirthdayMessage(request);
       case DONATION_STATS -> prepareDonationStatsMessage(request);
-      default -> new MessageWithFormat(request.message(), FORMAT_HTML);
+      default -> new MessageData(request.message(), FORMAT_HTML, GENERAL);
     };
   }
 
-  private MessageWithFormat prepareDonationStatsMessage(final TelegramBotSendMessageRequest request) {
+  private MessageData prepareDonationStatsMessage(final TelegramBotSendMessageRequest request) {
     final char[] escape = {'[', ']', '(', ')', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'};
     final String escaped = request.message().chars()
       .mapToObj(c -> new String(escape).indexOf(c) != -1 ? "\\" + (char) c : String.valueOf((char) c))
       .reduce(new StringBuilder(), StringBuilder::append, StringBuilder::append)
       .toString();
-    return new MessageWithFormat(escaped, FORMAT_MARKDOWN_V2);
+    return new MessageData(escaped, FORMAT_MARKDOWN_V2, DONATION_STATS);
   }
 
   @SneakyThrows
-  private MessageWithFormat prepareBirthdayMessage(final TelegramBotSendMessageRequest request) {
+  private MessageData prepareBirthdayMessage(final TelegramBotSendMessageRequest request) {
     final var msg = StringEscapeUtils.unescapeJava(request.message())
       .replace("Хоку:", "<b>Хоку:</b>")
       .replace("з Днем Народження!", "з <b>Днем Народження!</b> 🥳 ");
-    return new MessageWithFormat(msg, FORMAT_HTML);
+    return new MessageData(msg, FORMAT_HTML, BIRTHDAY);
   }
 
-  public Optional<List<String>> getChatId() {
-    return secretsReader.readSecret(appProperties.chatIdSecretKey())
-      .map(ids -> List.of(ids.split(",")));
+  public Optional<List<ChatConfig>> getChatConfigs() {
+    return chatConfigReader.readConfig().map(ChatConfiguration::chats);
   }
 
   @Builder
@@ -126,7 +136,9 @@ public class TelegramMessageSender {
     @JsonProperty("protect_content")
     boolean protectContent,
     @JsonProperty("show_caption_above_media")
-    boolean showCaptionAboveMedia
+    boolean showCaptionAboveMedia,
+    @JsonProperty("message_thread_id")
+    Integer messageThreadId
   ) {
 
     @JsonIgnore
@@ -135,8 +147,9 @@ public class TelegramMessageSender {
     }
   }
 
-  record MessageWithFormat(
+  record MessageData(
     String message,
-    String format
+    String format,
+    TelegramBotNotificationType notificationType
   ) { }
 }
