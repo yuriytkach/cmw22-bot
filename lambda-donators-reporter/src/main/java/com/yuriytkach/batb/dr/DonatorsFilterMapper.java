@@ -115,6 +115,6 @@ public class DonatorsFilterMapper {
     return filteredDonators;
   }
 
-  record DonatorSets(Set<Donator> grouped, Set<Donator> ungrouped) { }
+  public record DonatorSets(Set<Donator> grouped, Set<Donator> ungrouped) { }
 
 }

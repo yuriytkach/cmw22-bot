@@ -2,5 +2,6 @@ package com.yuriytkach.batb.common.telega;
 
 public enum TelegramBotNotificationType {
   GENERAL,
-  BIRTHDAY
+  BIRTHDAY,
+  DONATION_STATS
 }

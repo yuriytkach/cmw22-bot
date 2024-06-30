@@ -19,6 +19,10 @@ translation:
   lambda:
     function-name: lambda-ai-service
 
+bot:
+  telegram:
+    secret-name: /bot/telegram/secret
+
 quarkus:
   rest-client:
     privatbank:
@@ -29,6 +33,10 @@ quarkus:
       url: https://api.monobank.ua
       connect-timeout: 2000
       read-timeout: 140000
+    telegram-bot:
+      url: https://cmw22-bot.yuriytkach.com
+      connect-timeout: 2000
+      read-timeout: 30000
   log:
     level: INFO
     min-level: DEBUG
