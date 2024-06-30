@@ -12,6 +12,7 @@ import java.util.function.Function;
 
 import com.yuriytkach.batb.common.ai.AiServiceType;
 import com.yuriytkach.batb.common.ai.LambdaInvoker;
+import com.yuriytkach.batb.dr.AiLambdaConfig;
 import com.yuriytkach.batb.dr.Donator;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -25,7 +26,7 @@ import one.util.streamex.StreamEx;
 public class DonatorsNameService {
 
   private final LambdaInvoker lambdaInvoker;
-  private final LambdaInvokerProperties properties;
+  private final AiLambdaConfig properties;
 
   public Collection<Donator> translateEnglishNames(final Set<Donator> donatorsWithAmounts) {
     final List<String> englishNames = StreamEx.of(donatorsWithAmounts)

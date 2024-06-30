@@ -16,16 +16,12 @@ import lombok.extern.slf4j.Slf4j;
 public class AiImageService {
 
   private static final String DONATION_STATS_PROMPT = """
-    Create a wide landscape image for a social media post.
-    The image should represent donation stats for %s, with the word "%s" included prominently.
-    The design should be generic with minimal details, incorporating elements that symbolize Ukraine,
-    Ukrainian soldiers, and charity donations. Possible elements include:
-    - A background featuring the colors of the Ukrainian flag (blue and yellow).
-    - Silhouettes or simple outlines of soldiers.
-    - A heart or hand symbol to represent charity.
-    - Subtle icons like donation boxes or helping hands.
-    
-    Make sure the design is clean and not overly detailed, focusing on a positive and supportive theme.
+    A wide landscape image designed for a social media post representing donation stats for %s. \
+    The background features the colors of the Ukrainian flag, with the top half in blue and the bottom half in yellow. \
+    Prominently, the word '%s' is displayed in a clean, bold font. Silhouettes of Ukrainian soldiers are placed \
+    on the blue section, facing forward with minimal detail. A heart symbol and hand icons representing charity \
+    are included, subtly integrated within the design. Additional subtle icons, like donation boxes and helping hands, \
+    are scattered lightly across the image. The overall design is clean and supportive, conveying a positive message.
     """;
 
   @Inject
@@ -40,9 +36,9 @@ public class AiImageService {
         .timeout(Duration.ofMinutes(2))
         .user(clientConfig.imageModel().user())
         .persistDirectory(Optional.empty())
-        .modelName("gpt-4o")
+        .modelName("dall-e-3")
         .maxRetries(clientConfig.maxRetries())
-        .quality("hd")
+        .quality("standard")
         .size("1792x1024")
         .logRequests(true)
         .build();

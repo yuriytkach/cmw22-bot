@@ -90,7 +90,7 @@ public class TelegramMessageSender {
       .photo(photoUrl)
       .caption(msgAndType.message())
       .parseMode(msgAndType.format())
-      .showCaptionAboveMedia(true)
+      .showCaptionAboveMedia(msgAndType.notificationType != DONATION_STATS)
       .messageThreadId(chatConfig.threads().get(msgAndType.notificationType()))
       .build();
   }

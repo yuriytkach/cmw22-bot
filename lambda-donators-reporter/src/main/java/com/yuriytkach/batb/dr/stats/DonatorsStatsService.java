@@ -46,7 +46,13 @@ public class DonatorsStatsService {
 
     final var countStats = statsForListOfLongs(startDate, endDate, counts, "count", counts.size());
 
-    notificationService.notifyForStats(amountStats, countStats, finalDonators.ungrouped().size(), readOnlyNotification);
+    notificationService.notifyForStats(
+      amountStats,
+      countStats,
+      finalDonators.ungrouped().size(),
+      startDate.getMonth(),
+      readOnlyNotification
+    );
   }
 
   private DonationStats statsForListOfLongs(

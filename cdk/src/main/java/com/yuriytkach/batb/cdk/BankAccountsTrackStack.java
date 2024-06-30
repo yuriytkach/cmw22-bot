@@ -447,7 +447,7 @@ public class BankAccountsTrackStack extends Stack {
       .timeout(Duration.minutes(15))
       .snapStart(SnapStartConf.ON_PUBLISHED_VERSIONS)
       .environment(Map.of(
-        "TRANSLATION_LAMBDA_FUNCTION_NAME", lambdaAiServiceAlias.getFunctionName()
+        "AI_LAMBDA_FUNCTION_NAME", lambdaAiServiceAlias.getFunctionName()
       ))
       .build();
 

@@ -15,7 +15,7 @@ txfetcher:
   mono-token:
     config-key: /batb/tx/mono-token/config
 
-translation:
+ai:
   lambda:
     function-name: lambda-ai-service
 
