@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.lambda.model.InvokeRequest;
 public class LambdaInvoker {
 
   private final ObjectMapper objectMapper;
+  private final LambdaClient lambdaClient;
 
   public Optional<String> invokeAiLambda(
     final String functionName,
@@ -29,7 +30,7 @@ public class LambdaInvoker {
   }
 
   public String invokeLambda(final String functionName, final String payload) {
-    try (var lambdaClient = LambdaClient.builder().build()) {
+    try {
       final var invokeRequest = InvokeRequest.builder()
         .functionName(functionName)
         .payload(SdkBytes.fromString(payload, StandardCharsets.UTF_8))
