@@ -1,5 +1,8 @@
 package com.yuriytkach.batb.dr.translation;
 
+import static com.yuriytkach.batb.dr.tx.DonationTransaction.UNKNOWN;
+import static java.util.function.Predicate.not;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -28,6 +31,7 @@ public class DonatorsNameService {
     final List<String> englishNames = StreamEx.of(donatorsWithAmounts)
       .map(Donator::name)
       .filter(name -> name.matches("\\w+.*"))
+      .filter(not(UNKNOWN::equals))
       .distinct()
       .toImmutableList();
     log.info("English names found: {}", englishNames.size());
@@ -79,7 +83,7 @@ public class DonatorsNameService {
       .toImmutableList();
   }
 
-  private static String constructTranslatedDonatorName(final Map<String, String> translations, final Donator donator) {
+  private String constructTranslatedDonatorName(final Map<String, String> translations, final Donator donator) {
     if (translations.containsKey(donator.name())) {
       final var translated = translations.get(donator.name());
       final var nameParts = translated.split(" ");
