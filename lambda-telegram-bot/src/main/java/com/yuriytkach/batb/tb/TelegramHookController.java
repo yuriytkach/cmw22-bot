@@ -41,11 +41,19 @@ public class TelegramHookController {
     try {
       if (body.getMessage() != null) {
         if (isValidChatId(body.getMessage().getChat())) {
-          log.info("Chat ID is valid");
+          log.info(
+            "Chat ID is valid: {}. Thread id: {}",
+            body.getMessage().getChat().getId(),
+            body.getMessage().getMessageThreadId()
+          );
           final var response = telegramBotService.processUpdate(body.getMessage());
           return response.map(Response::ok).orElseGet(Response::ok).build();
         } else {
-          log.info("Chat ID is invalid: {}", body.getMessage().getChat().getId());
+          log.info(
+            "Chat ID is invalid: {}. Thread id: {}",
+            body.getMessage().getChat().getId(),
+            body.getMessage().getMessageThreadId()
+          );
           return Response.ok(createDefaultResponse(body)).build();
         }
       } else {
