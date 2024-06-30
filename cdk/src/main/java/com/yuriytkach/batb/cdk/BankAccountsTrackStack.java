@@ -497,7 +497,7 @@ public class BankAccountsTrackStack extends Stack {
     final Alias lambdaAlias = createVersionAndUpdateAlias(lambda, "DonatorsReporterLambda");
 
     final var runEveryMonthRule = Rule.Builder.create(this, "DonatorsReporterLambdaMonthlyRunRule")
-      .schedule(Schedule.cron(CronOptions.builder().day("2").hour("5").minute("5").build()))
+      .schedule(Schedule.cron(CronOptions.builder().day("2").hour("6").minute("5").build()))
       .build();
 
     final var targetDonatorsLambda = LambdaFunction.Builder.create(lambdaAlias)
