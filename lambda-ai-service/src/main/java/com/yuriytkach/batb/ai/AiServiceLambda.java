@@ -19,6 +19,9 @@ public class AiServiceLambda implements RequestHandler<LambdaAiServiceRequest, S
   @Inject
   BirthdayWishAiService birthdayWishAiService;
 
+  @Inject
+  AiImageService aiImageService;
+
   @Override
   public String handleRequest(final LambdaAiServiceRequest request, final Context context) {
     MDC.put("awsRequestId", context.getAwsRequestId());
@@ -34,6 +37,10 @@ public class AiServiceLambda implements RequestHandler<LambdaAiServiceRequest, S
         log.info("Invoking AI service to create birthday wish");
         yield birthdayWishAiService.createWish(request.payload());
       }
+      case IMAGE_DONATION_STATS -> {
+        log.info("Invoking AI service for image generation for donation stats for : {}", request.payload());
+        yield aiImageService.generateImage(request.payload());
+      }
     };
     return processAiResult(result);
   }
@@ -42,11 +49,11 @@ public class AiServiceLambda implements RequestHandler<LambdaAiServiceRequest, S
     log.info("AI service response: {}", result.evaluation());
     return switch (result.evaluation()) {
       case POSITIVE -> {
-        log.info("AI service successfully translated names");
+        log.info("AI service success");
         yield result.message();
       }
       case NEGATIVE -> {
-        log.error("AI service failed to translate names: {}", result.message());
+        log.error("AI service failed: {}", result.message());
         yield "";
       }
     };
