@@ -129,7 +129,7 @@ public class DonatorsReporterLambda implements RequestHandler<DonatorsReporterLa
   }
 
   private LocalDate createEndOfMonthDate() {
-    return LocalDate.now(clock).withDayOfMonth(1).minusDays(1);
+    return LocalDate.now(clock).withDayOfMonth(1).minusMonths(properties.monthBefore() - 1).minusDays(1);
   }
 
   private LocalDate createStartOfMonthDate() {
