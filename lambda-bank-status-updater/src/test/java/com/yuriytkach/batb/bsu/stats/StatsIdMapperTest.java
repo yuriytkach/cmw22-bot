@@ -22,6 +22,7 @@ class StatsIdMapperTest {
     "Генератори, generators",
     "Медицина, medicine",
     "Інше, other",
+    "Іншого, other",
     "Технічне Оснащення, tech",
     "Броня, armors",
     "Some other, Some other"

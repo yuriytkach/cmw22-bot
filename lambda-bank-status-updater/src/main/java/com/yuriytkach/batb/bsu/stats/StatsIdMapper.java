@@ -20,7 +20,7 @@ class StatsIdMapper {
       case "стар" -> "starlinks";
       case "гене" -> "generators";
       case "меди" -> "medicine";
-      case "інше" -> "other";
+      case "інше", "іншо" -> "other";
       case "техн" -> "tech";
       case "брон" -> "armors";
       default -> name;
