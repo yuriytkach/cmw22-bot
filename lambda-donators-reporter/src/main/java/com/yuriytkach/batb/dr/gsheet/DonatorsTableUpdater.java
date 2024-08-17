@@ -31,7 +31,7 @@ public class DonatorsTableUpdater {
   public static final int TOP_DONATORS_SKIP_ROWS = 1;
   public static final String TOP_DONATORS_SORT_COL = "B";
 
-  public static final int TRACK_MONTH_ADJUST_FOR_PREV = 1;
+  public static final int TRACK_MONTH_ADJUST_FOR_PREV = -1;
   public static final Color ORANGE_COLOR = new Color()
     .setRed(1.0f)
     .setGreen(0.8f)
