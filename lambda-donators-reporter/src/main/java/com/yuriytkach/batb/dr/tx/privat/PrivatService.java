@@ -1,6 +1,7 @@
 package com.yuriytkach.batb.dr.tx.privat;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,6 +49,7 @@ class PrivatService {
     final var result = readTransactions(bankToken.value(), startDateStr, endDateStr, account, null)
       .filter(this::isCreditTransaction)
       .map(this::mapTx)
+      .flatMap(Optional::stream)
       .collect(Collectors.toUnmodifiableSet());
 
     final long amount = StreamEx.of(result)
@@ -90,19 +92,24 @@ class PrivatService {
       && transaction.status().equals(TRANSACTION_STATUS_PASSED);
   }
 
-  private DonationTransaction mapTx(final Transaction tx) {
+  private Optional<DonationTransaction> mapTx(final Transaction tx) {
     final var name = privatTxNameMapper.mapDonatorName(tx).orElse(DonationTransaction.UNKNOWN);
+
+    if (log.isDebugEnabled() && DonationTransaction.SELF_NAME.equals(name)) {
+      log.debug("Skipping self TX from fund: {}", tx);
+      return Optional.empty();
+    }
 
     if (log.isDebugEnabled() && DonationTransaction.UNKNOWN.equals(name)) {
       log.debug("Cannot map name from privat TX: {}", tx);
     }
 
-    return DonationTransaction.builder()
+    return Optional.of(DonationTransaction.builder()
       .id(tx.id())
       .amountUah(privatbankUtils.parseAmount(tx.sumEquivalent()))
       .date(privatbankUtils.safeParseDateTime(tx.dateTime()).orElse(null))
       .name(name)
-      .build();
+      .build());
   }
 
 }

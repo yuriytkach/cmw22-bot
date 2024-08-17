@@ -13,5 +13,6 @@ public record DonationTransaction(
 ) {
 
   public static final String UNKNOWN = "Unknown";
+  public static final String SELF_NAME = "SelfFund";
 
 }

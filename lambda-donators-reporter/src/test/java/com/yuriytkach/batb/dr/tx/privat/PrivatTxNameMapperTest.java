@@ -101,9 +101,9 @@ class PrivatTxNameMapperTest {
       "Бандера Степан, ",
       "Бандера, ",
       "CH_Транз.рахунок платежi bp 4495307, ",
-      "БФ СПІВДРУЖНІСТЬ-22 БО, ",
-      "Текущий депозит БФ СПІВДРУЖНІСТЬ-22 БО, ",
-      "БФ СПІВДРУЖНІСТЬ-22 ТОВ, "
+      "БФ СПІВДРУЖНІСТЬ-22 БО, SelfFund",
+      "Текущий депозит БФ СПІВДРУЖНІСТЬ-22 БО, SelfFund",
+      "БФ СПІВДРУЖНІСТЬ-22 ТОВ, SelfFund"
     })
     void shouldMapContrAgent(final String value, final String expectedName) {
       assertThat(tested.resolveName(createTx(null, value))).isEqualTo(Optional.ofNullable(expectedName));

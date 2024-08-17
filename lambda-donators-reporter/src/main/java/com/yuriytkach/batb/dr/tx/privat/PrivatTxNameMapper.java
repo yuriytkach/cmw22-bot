@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
 import com.yuriytkach.batb.dr.DonatorsReporterProperties;
+import com.yuriytkach.batb.dr.tx.DonationTransaction;
 import com.yuriytkach.batb.dr.tx.privat.api.Transaction;
 
 import jakarta.enterprise.context.ApplicationScoped;
@@ -102,11 +103,13 @@ class PrivatTxNameMapper {
 
     @Override
     public Optional<String> resolveName(final Transaction tx) {
-      if ("БФ СПІВДРУЖНІСТЬ-22 ТОВ".equals(tx.contrAgentName())) {
-        return Optional.empty();
+      final String contrAgentName = tx.contrAgentName();
+
+      if (contrAgentName != null && contrAgentName.contains("СПІВДРУЖНІСТЬ-22")) {
+        return Optional.of(DonationTransaction.SELF_NAME);
       }
 
-      return Optional.ofNullable(tx.contrAgentName())
+      return Optional.ofNullable(contrAgentName)
         .filter(value -> !value.isBlank()
           && !value.startsWith("CH_")
           && !value.startsWith("P2P")
@@ -114,7 +117,7 @@ class PrivatTxNameMapper {
           && !value.matches("\\d+.*")
         )
         .flatMap(value -> resolveNameFromPattern(PATTERN_1, value))
-        .or(() -> Optional.ofNullable(tx.contrAgentName())
+        .or(() -> Optional.ofNullable(contrAgentName)
           .filter(value -> value.matches("^ТОВ.+|.+ТОВ$"))
         );
     }
