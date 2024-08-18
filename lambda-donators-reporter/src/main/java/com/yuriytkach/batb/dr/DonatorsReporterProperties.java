@@ -25,4 +25,6 @@ public interface DonatorsReporterProperties {
 
   Map<String, String> replacers();
 
+  String donationStatsNotificationMessage();
+
 }

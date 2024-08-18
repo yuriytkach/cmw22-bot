@@ -1,5 +1,7 @@
 package com.yuriytkach.batb.dr.stats;
 
+import static java.util.function.Predicate.not;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +40,7 @@ public class DonatorsStatsService {
     final var amountStats = statsForListOfLongs(startDate, endDate, amounts, "amount", sum);
 
     final List<Long> counts = finalDonators.grouped().stream()
+      .filter(not(Donator::isAnonymous))
       .map(Donator::count)
       .map(Integer::longValue)
       .sorted()
