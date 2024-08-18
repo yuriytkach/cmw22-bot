@@ -33,6 +33,7 @@ public class DonatorsNameService {
       .filter(Donator::isEnglishName)
       .map(Donator::name)
       .distinct()
+      .sorted()
       .toImmutableList();
     log.info("English names found: {}", englishNames.size());
     log.debug("English names: {}", englishNames);
@@ -59,7 +60,7 @@ public class DonatorsNameService {
     final String[] translations = lambdaResponse.substring(1, lambdaResponse.length()-1).split(",");
     if (translations.length != englishNames.size()) {
       log.error("Translations count mismatch: {} != {}", translations.length, englishNames.size());
-      return Map.of();
+      return StreamEx.of(englishNames).mapToEntry(Function.identity()).distinctKeys().toImmutableMap();
     }
     log.info("Zipping English names with translations: {}", englishNames.size());
     return StreamEx.of(englishNames)
