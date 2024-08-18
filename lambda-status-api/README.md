@@ -1,9 +1,13 @@
 # Lambda Status API module
 
-## Description
-
-The `lambda-status-api` is a Java-based module that provides a RESTful API for retrieving the status of 
+An AWS Lambda that provides a RESTful API for retrieving the status of 
 funds. It leverages the power of Quarkus to build serverless applications.
+
+The following REST API endpoints are provided:
+- `GET /status/{fundraiserId}` - retrieves the status of a fundraiser by its ID
+- `GET /statistics` - retrieves the general statistics of the fund
+
+This lambda is deployed with CDK to AWS in binary form, thus **should be compiled to a native image**.
 
 ## How it Works
 

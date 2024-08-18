@@ -10,6 +10,8 @@ The module works by receiving an Authorizer request, processing it, and then gen
 The policy response includes the effect (allow or deny), the resource ARN (Amazon Resource Name). 
 This information is encapsulated in a `PolicyResponse` object, which is then returned to the caller.
 
+This lambda is deployed with CDK to AWS in binary form, thus **should be compiled to a native image**.
+
 ## How it Works
 
 The core functionality of the `lambda-bot-authorizer` module is encapsulated in the `createResponse` method. 
